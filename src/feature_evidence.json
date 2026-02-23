@@ -1,0 +1,78 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-create-a-comprehensive-video-settings-editor-that-allows-users-to-edit-all-video-properties-after-upload-including-title-description-category-privacy-level-thumbnail-and-membership-tier-restrictions",
+      "featureTitle": "Create a comprehensive video settings editor that allows users to edit all video properties after upload including title, description, category, privacy level, thumbnail, and membership tier restrictions",
+      "files": [
+        "frontend/src/components/EditVideoDialog.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/WatchPage.tsx"
+      ],
+      "components": [
+        "authorization@1.0.1",
+        "blob-storage@2.0.3",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "stripe@1.0.1",
+        "http-outcalls@1.1.1"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-comprehensive-course-settings-editor-that-allows-channel-owners-to-edit-all-course-properties-after-upload-including-title-description-course-image-visibility-settings-pricing-and-tier-requirements",
+      "featureTitle": "Create a comprehensive course settings editor that allows channel owners to edit all course properties after upload including title, description, course image, visibility settings, pricing, and tier requirements",
+      "files": [
+        "frontend/src/components/EditCourseDialog.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CourseManagementPage.tsx",
+        "frontend/src/pages/CoursePlayerPage.tsx"
+      ],
+      "components": [
+        "authorization@1.0.1",
+        "blob-storage@2.0.3",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "stripe@1.0.1",
+        "http-outcalls@1.1.1"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-personalized-curated-for-you-course-recommendations-section-on-the-main-page-that-suggests-courses-based-on-the-user-s-watch-history-liked-videos-commented-videos-and-followed-channels",
+      "featureTitle": "Add a personalized 'Curated For You' course recommendations section on the main page that suggests courses based on the user's watch history, liked videos, commented videos, and followed channels",
+      "files": [
+        "frontend/src/components/PersonalizedCoursesSection.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/HomePage.tsx"
+      ],
+      "components": [
+        "authorization@1.0.1",
+        "blob-storage@2.0.3",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "stripe@1.0.1",
+        "http-outcalls@1.1.1"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

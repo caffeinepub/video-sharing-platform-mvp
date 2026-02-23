@@ -1,0 +1,95 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-23T20:08:32.339Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Create a comprehensive video settings editor that allows users to edit all video properties after upload including title, description, category, privacy level, thumbnail, and membership tier restrictions",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/EditVideoDialog.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/WatchPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/EditVideoDialog.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/WatchPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Create a comprehensive course settings editor that allows channel owners to edit all course properties after upload including title, description, course image, visibility settings, pricing, and tier requirements",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/EditCourseDialog.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CourseManagementPage.tsx",
+          "frontend/src/pages/CoursePlayerPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/EditCourseDialog.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CourseManagementPage.tsx",
+          "frontend/src/pages/CoursePlayerPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Add a personalized 'Curated For You' course recommendations section on the main page that suggests courses based on the user's watch history, liked videos, commented videos, and followed channels",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/PersonalizedCoursesSection.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/PersonalizedCoursesSection.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Implement backend recommendation algorithm that analyzes user activity (watched videos, liked videos, commented videos, followed channels) to generate relevant course suggestions",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/CreateCourseDialog.tsx",
+    "frontend/src/components/EditCourseDialog.tsx",
+    "frontend/src/components/EditVideoDialog.tsx",
+    "frontend/src/components/PersonalizedCoursesSection.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/CourseManagementPage.tsx",
+    "frontend/src/pages/CoursePlayerPage.tsx",
+    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/pages/UploadPage.tsx",
+    "frontend/src/pages/WatchPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

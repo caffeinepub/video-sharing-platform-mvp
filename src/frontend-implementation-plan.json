@@ -1,0 +1,94 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Add video/course settings editors and personalized course recommendations",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Create a comprehensive video settings editor that allows users to edit all video properties after upload including title, description, category, privacy level, thumbnail, and membership tier restrictions",
+      "acceptanceCriteria": [
+        "Video owner can edit title, description, category, privacy level, thumbnail file, and tier restrictions from the video page",
+        "Changes are persisted to the backend and reflected immediately",
+        "Non-owners cannot access the editor",
+        "Form validation prevents invalid inputs"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/EditVideoDialog.tsx",
+          "operation": "modify",
+          "description": "Extend the existing dialog to support editing thumbnail files (using ExternalBlob from blob-storage component for file uploads with progress tracking), privacy level toggle, and membership tier restrictions dropdown. Add form fields for tier selection using getChannelMembershipTiers data. Verify the blob-storage component's usage instructions before implementing thumbnail upload functionality. Ensure only video owners can access this dialog by checking caller identity against video.channelId ownership."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add useUpdateVideoMetadata mutation hook that calls backend updateVideo with full VideoMetadata including new thumbnail URL (from uploaded ExternalBlob), privacy boolean, and requiredTierLevel fields. Invalidate video queries on success to reflect changes immediately."
+        },
+        {
+          "path": "frontend/src/pages/WatchPage.tsx",
+          "operation": "modify",
+          "description": "Add an 'Edit Video' button visible only to the video owner (compare caller identity with channel owner). Wire the EditVideoDialog component to open on click, passing current video metadata as initial values. Ensure the dialog integrates with the page's existing layout near the video player controls."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add a personalized 'Curated For You' course recommendations section on the main page that suggests courses based on the user's watch history, liked videos, commented videos, and followed channels",
+      "acceptanceCriteria": [
+        "Main page displays a 'Curated For You' section with recommended courses",
+        "Recommendations are personalized based on user's watch history, likes, comments, and followed channels",
+        "Section shows relevant courses from channels the user follows",
+        "Recommendations update as user activity changes",
+        "Non-authenticated users see a generic course list or empty state"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add useGetPersonalizedCourses query hook that calls backend getPersonalizedCourses(). Enable the query only when user is authenticated. Return empty array for non-authenticated users to trigger empty state in UI."
+        },
+        {
+          "path": "frontend/src/components/PersonalizedCoursesSection.tsx",
+          "operation": "create",
+          "description": "Create a section component that displays personalized course recommendations using the useGetPersonalizedCourses hook. Render courses in a horizontal scrollable grid using CourseCard components. Show loading skeletons during fetch. Display an empty state message for non-authenticated users prompting them to log in for personalized recommendations. For authenticated users with no recommendations, show a message encouraging them to watch videos and follow channels."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Add the PersonalizedCoursesSection component above the existing video grid. Position it prominently near the top of the page after any hero/banner sections. Ensure proper spacing and responsive layout. The section should only render for authenticated users or show the appropriate empty state for guests."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Create a comprehensive course settings editor that allows channel owners to edit all course properties after upload including title, description, course image, visibility settings, pricing, and tier requirements",
+      "acceptanceCriteria": [
+        "Course creator can edit title, description, image, visibility, pricing, and tier requirements",
+        "Changes are saved to the backend and visible immediately",
+        "Non-creators cannot access the editor",
+        "Validation ensures pricing and tier settings are valid"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/EditCourseDialog.tsx",
+          "operation": "create",
+          "description": "Create a dialog component modeled after CreateCourseDialog.tsx that allows editing all course properties. Include form fields for title (text input), description (textarea), course image upload (using ExternalBlob from blob-storage component with upload progress tracking), visibility toggle (boolean), pricing in USD (number input with validation for positive values), and required tier level (dropdown populated from channel tiers). Verify the blob-storage component's usage instructions before implementing image upload functionality. Add form validation to prevent invalid pricing or tier values. Wire the updateCourse mutation hook to save changes."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add useUpdateCourse mutation hook that calls backend updateCourse with courseId and full updated Course object including new image URL (from uploaded ExternalBlob), visibility boolean, pricing, and tier requirements. Invalidate course and channel courses queries on success."
+        },
+        {
+          "path": "frontend/src/pages/CourseManagementPage.tsx",
+          "operation": "modify",
+          "description": "Add 'Edit' action buttons to each course card displayed on the management page. Wire the EditCourseDialog to open when clicked, passing the course data as initial values. Ensure only the course creator (channel owner) can see and access these edit buttons by checking caller identity against channel ownership."
+        },
+        {
+          "path": "frontend/src/pages/CoursePlayerPage.tsx",
+          "operation": "modify",
+          "description": "Add an 'Edit Course' button visible only to the course creator (check if caller owns the channel). Position it near the course title/header. Wire the EditCourseDialog component to open on click with current course data pre-populated."
+        }
+      ]
+    }
+  ]
+}
