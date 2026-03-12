@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Video learning platform with channels, courses, private video uploads, video/course settings editors, and personalized course recommendations",
+  "architectural_notes": [
+    "Video settings editor must support editing all properties: title, description, privacy level, thumbnail, tags",
+    "Course settings editor must support editing all properties: title, description, image, visibility, pricing",
+    "Recommendation algorithm should analyze user watch history, likes, comments, and followed channels to suggest relevant courses"
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-create-a-comprehensive-video-settings-editor-that-allows-users-to-edit-all-video-properties-after-upload-including-title-description-category-privacy-level-thumbnail-and-membership-tier-restrictions",
+      "title": "Create a comprehensive video settings editor that allows users to edit all video properties after upload including title, description, category, privacy level, thumbnail, and membership tier restrictions",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-comprehensive-course-settings-editor-that-allows-channel-owners-to-edit-all-course-properties-after-upload-including-title-description-course-image-visibility-settings-pricing-and-tier-requirements",
+      "title": "Create a comprehensive course settings editor that allows channel owners to edit all course properties after upload including title, description, course image, visibility settings, pricing, and tier requirements",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-personalized-curated-for-you-course-recommendations-section-on-the-main-page-that-suggests-courses-based-on-the-user-s-watch-history-liked-videos-commented-videos-and-followed-channels",
+      "title": "Add a personalized 'Curated For You' course recommendations section on the main page that suggests courses based on the user's watch history, liked videos, commented videos, and followed channels",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Video settings editor allowing users to edit all video properties after upload",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Course settings editor allowing users to edit all course properties after upload",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Smart course recommendation system on main page based on user watch history, likes, comments, and followed channels",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Implement backend recommendation algorithm that analyzes user activity (watched videos, liked videos, commented videos, followed channels) to generate relevant course suggestions",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Video Learning Platform",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

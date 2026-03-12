@@ -1,0 +1,105 @@
+{
+  "kind": "build_request",
+  "title": "Add video/course settings editors and personalized course recommendations",
+  "projectName": "Video Learning Platform",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Create a comprehensive video settings editor that allows users to edit all video properties after upload including title, description, category, privacy level, thumbnail, and membership tier restrictions",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4",
+          "msg-5"
+        ],
+        "quotes": [
+          "Video Settings Editor: All."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Video owner can edit title, description, category, privacy level, thumbnail file, and tier restrictions from the video page",
+        "Changes are persisted to the backend and reflected immediately",
+        "Non-owners cannot access the editor",
+        "Form validation prevents invalid inputs"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Create a comprehensive course settings editor that allows channel owners to edit all course properties after upload including title, description, course image, visibility settings, pricing, and tier requirements",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4",
+          "msg-5"
+        ],
+        "quotes": [
+          "Course Settings Editor: All."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Course creator can edit title, description, image, visibility, pricing, and tier requirements",
+        "Changes are saved to the backend and visible immediately",
+        "Non-creators cannot access the editor",
+        "Validation ensures pricing and tier settings are valid"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add a personalized 'Curated For You' course recommendations section on the main page that suggests courses based on the user's watch history, liked videos, commented videos, and followed channels",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4",
+          "msg-5",
+          "msg-6"
+        ],
+        "quotes": [
+          "It should be determined based what videos the user has watched/liked/commented and the channels the user follows."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Main page displays a 'Curated For You' section with recommended courses",
+        "Recommendations are personalized based on user's watch history, likes, comments, and followed channels",
+        "Section shows relevant courses from channels the user follows",
+        "Recommendations update as user activity changes",
+        "Non-authenticated users see a generic course list or empty state"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Implement backend recommendation algorithm that analyzes user activity (watched videos, liked videos, commented videos, followed channels) to generate relevant course suggestions",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-5",
+          "msg-6"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend provides an API endpoint to fetch recommended courses for a user",
+        "Algorithm considers video watch history, likes, comments, and channel follows",
+        "Returns courses from channels user follows with weighted relevance",
+        "Handles users with no activity gracefully"
+      ]
+    }
+  ],
+  "constraints": [
+    "Respect single-actor architecture - all backend logic in main.mo",
+    "Do not modify immutable frontend paths: useInternetIdentity.ts, useInternetIdentity.tsx, useActor.ts, main.tsx, components/ui/*",
+    "Use existing EditVideoDialog.tsx as reference for video settings editor patterns",
+    "Use existing CreateCourseDialog.tsx patterns for course settings editor",
+    "Maintain consistency with existing privacy and tier restriction patterns"
+  ],
+  "nonGoals": [
+    "Automated course creation or AI-powered content generation",
+    "Real-time collaborative editing of videos or courses",
+    "Advanced analytics or A/B testing for recommendations",
+    "Integration with external recommendation engines or ML services",
+    "Batch editing of multiple videos or courses simultaneously"
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
