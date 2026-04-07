@@ -135,14 +135,14 @@ export interface VideoMetadata {
   'videoUrl' : string,
   'uploadDate' : Time,
 }
-export interface _CaffeineStorageCreateCertificateResult {
+export interface _ImmutableObjectStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
 }
-export interface _CaffeineStorageRefillInformation {
+export interface _ImmutableObjectStorageRefillInformation {
   'proposed_top_up_amount' : [] | [bigint],
 }
-export interface _CaffeineStorageRefillResult {
+export interface _ImmutableObjectStorageRefillResult {
   'success' : [] | [boolean],
   'topped_up_amount' : [] | [bigint],
 }
@@ -153,21 +153,25 @@ export interface http_request_result {
   'headers' : Array<http_header>,
 }
 export interface _SERVICE {
-  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
-  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
-  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+  '_immutableObjectStorageBlobsAreLive' : ActorMethod<
+    [Array<Uint8Array>],
+    Array<boolean>
+  >,
+  '_immutableObjectStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_immutableObjectStorageConfirmBlobDeletion' : ActorMethod<
     [Array<Uint8Array>],
     undefined
   >,
-  '_caffeineStorageCreateCertificate' : ActorMethod<
+  '_immutableObjectStorageCreateCertificate' : ActorMethod<
     [string],
-    _CaffeineStorageCreateCertificateResult
+    _ImmutableObjectStorageCreateCertificateResult
   >,
-  '_caffeineStorageRefillCashier' : ActorMethod<
-    [[] | [_CaffeineStorageRefillInformation]],
-    _CaffeineStorageRefillResult
+  '_immutableObjectStorageRefillCashier' : ActorMethod<
+    [[] | [_ImmutableObjectStorageRefillInformation]],
+    _ImmutableObjectStorageRefillResult
   >,
-  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
+  '_immutableObjectStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
+  '_initializeAccessControl' : ActorMethod<[], undefined>,
   'addComment' : ActorMethod<[Comment], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'cancelSubscription' : ActorMethod<[string], undefined>,

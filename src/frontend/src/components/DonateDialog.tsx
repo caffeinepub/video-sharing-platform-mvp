@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,13 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Heart, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Heart, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface DonateDialogProps {
   channelId: string;
@@ -21,10 +21,14 @@ interface DonateDialogProps {
   onDonate: (amount: number, message: string) => Promise<void>;
 }
 
-export default function DonateDialog({ channelId, channelName, onDonate }: DonateDialogProps) {
+export default function DonateDialog({
+  channelId: _channelId,
+  channelName,
+  onDonate,
+}: DonateDialogProps) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [message, setMessage] = useState('');
+  const [amount, setAmount] = useState("");
+  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const presetAmounts = [5, 10, 25, 50, 100];
@@ -32,9 +36,9 @@ export default function DonateDialog({ channelId, channelName, onDonate }: Donat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const donationAmount = parseFloat(amount);
-    if (isNaN(donationAmount) || donationAmount <= 0) {
-      toast.error('Please enter a valid donation amount');
+    const donationAmount = Number.parseFloat(amount);
+    if (Number.isNaN(donationAmount) || donationAmount <= 0) {
+      toast.error("Please enter a valid donation amount");
       return;
     }
 
@@ -42,10 +46,12 @@ export default function DonateDialog({ channelId, channelName, onDonate }: Donat
     try {
       await onDonate(donationAmount, message);
       setOpen(false);
-      setAmount('');
-      setMessage('');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to process donation');
+      setAmount("");
+      setMessage("");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to process donation";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +81,9 @@ export default function DonateDialog({ channelId, channelName, onDonate }: Donat
                   <Button
                     key={preset}
                     type="button"
-                    variant={amount === preset.toString() ? 'default' : 'outline'}
+                    variant={
+                      amount === preset.toString() ? "default" : "outline"
+                    }
                     onClick={() => setAmount(preset.toString())}
                   >
                     ${preset}
@@ -110,7 +118,7 @@ export default function DonateDialog({ channelId, channelName, onDonate }: Donat
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Donate ${amount || '0'}
+              Donate ${amount || "0"}
             </Button>
           </DialogFooter>
         </form>

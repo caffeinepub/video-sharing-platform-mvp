@@ -1,44 +1,55 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useGetCallerUserProfile, useSaveCallerUserProfile } from '../hooks/useQueries';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useGetCallerUserProfile,
+  useSaveCallerUserProfile,
+} from "../hooks/useQueries";
 
 export default function ProfileSetupModal() {
   const { isAuthenticated, isInitializing } = useAuth();
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    isFetched,
+  } = useGetCallerUserProfile();
   const saveProfile = useSaveCallerUserProfile();
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
 
   // Only show profile setup when:
   // 1. User is authenticated
   // 2. Not initializing
   // 3. Profile data has been fetched
   // 4. Profile is null (doesn't exist)
-  const showProfileSetup = isAuthenticated && !isInitializing && !profileLoading && isFetched && userProfile === null;
+  const showProfileSetup =
+    isAuthenticated &&
+    !isInitializing &&
+    !profileLoading &&
+    isFetched &&
+    userProfile === null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Please enter your name');
+      toast.error("Please enter your name");
       return;
     }
 
     try {
       await saveProfile.mutateAsync({ name: name.trim() });
-      toast.success('Profile created successfully!');
-    } catch (error) {
-      toast.error('Failed to create profile');
-      console.error(error);
+      toast.success("Profile created successfully!");
+    } catch {
+      toast.error("Failed to create profile");
     }
   };
 
@@ -62,8 +73,12 @@ export default function ProfileSetupModal() {
               autoFocus
             />
           </div>
-          <Button type="submit" className="w-full" disabled={saveProfile.isPending}>
-            {saveProfile.isPending ? 'Creating Profile...' : 'Continue'}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={saveProfile.isPending}
+          >
+            {saveProfile.isPending ? "Creating Profile..." : "Continue"}
           </Button>
         </form>
       </DialogContent>

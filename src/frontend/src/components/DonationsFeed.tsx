@@ -1,8 +1,8 @@
-import { useGetChannelDonations, useGetUserProfile } from '../hooks/useQueries';
-import { formatDistanceToNow } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
+import { Heart } from "lucide-react";
+import { useGetChannelDonations, useGetUserProfile } from "../hooks/useQueries";
 
 interface DonationsFeedProps {
   channelId: string;
@@ -85,18 +85,26 @@ function DonationItem({ donation }: { donation: any }) {
     <div className="flex gap-3 pb-4 border-b last:border-0 last:pb-0">
       <Avatar className="h-10 w-10">
         <AvatarImage src="/assets/generated/default-avatar.dim_100x100.png" />
-        <AvatarFallback>{profile?.name?.[0] || 'A'}</AvatarFallback>
+        <AvatarFallback>{profile?.name?.[0] || "A"}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm">{profile?.name || 'Anonymous'}</span>
-          <span className="text-accent font-bold">${Number(donation.amountUsd)}</span>
+          <span className="font-semibold text-sm">
+            {profile?.name || "Anonymous"}
+          </span>
+          <span className="text-accent font-bold">
+            ${Number(donation.amountUsd)}
+          </span>
         </div>
         {donation.message && (
-          <p className="text-sm text-muted-foreground mb-1">{donation.message}</p>
+          <p className="text-sm text-muted-foreground mb-1">
+            {donation.message}
+          </p>
         )}
         <p className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(Number(donation.timestamp) / 1000000), { addSuffix: true })}
+          {formatDistanceToNow(new Date(Number(donation.timestamp) / 1000000), {
+            addSuffix: true,
+          })}
         </p>
       </div>
     </div>

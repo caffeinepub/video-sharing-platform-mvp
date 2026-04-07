@@ -1,45 +1,53 @@
-import { useParams, Link } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Link, useParams } from "@tanstack/react-router";
+import { formatDistanceToNow } from "date-fns";
+import { Edit, Loader2, Lock, Share2, ThumbsUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { Comment } from "../backend";
+import AddToPlaylistDialog from "../components/AddToPlaylistDialog";
+import EditVideoDialog from "../components/EditVideoDialog";
+import { useAuth } from "../contexts/AuthContext";
 import {
-  useGetVideo,
-  useGetChannel,
-  useGetComments,
   useAddComment,
-  useLikeVideo,
-  useGetUserSubscriptionTierLevel,
-  useGetUserProfile,
+  useGetChannel,
   useGetChannelCourses,
-} from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ThumbsUp, Share2, Loader2, Lock, Edit } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
-import type { Comment } from '../backend';
-import AddToPlaylistDialog from '../components/AddToPlaylistDialog';
-import EditVideoDialog from '../components/EditVideoDialog';
+  useGetComments,
+  useGetUserProfile,
+  useGetUserSubscriptionTierLevel,
+  useGetVideo,
+  useLikeVideo,
+} from "../hooks/useQueries";
 
 export default function WatchPage() {
-  const { videoId } = useParams({ from: '/watch/$videoId' });
+  const { videoId } = useParams({ from: "/watch/$videoId" });
   const { identity, isAuthenticated } = useAuth();
   const [videoKey, setVideoKey] = useState(0);
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const { data: video, isLoading: videoLoading, refetch: refetchVideo, error: videoError } = useGetVideo(videoId);
+  const {
+    data: video,
+    isLoading: videoLoading,
+    refetch: refetchVideo,
+    error: videoError,
+  } = useGetVideo(videoId);
   const { data: channel } = useGetChannel(video?.channelId);
-  const { data: comments = [], refetch: refetchComments } = useGetComments(videoId);
-  const { data: userTierLevel } = useGetUserSubscriptionTierLevel(video?.channelId);
+  const { data: comments = [], refetch: refetchComments } =
+    useGetComments(videoId);
+  const { data: userTierLevel } = useGetUserSubscriptionTierLevel(
+    video?.channelId,
+  );
   const { data: courses = [] } = useGetChannelCourses(video?.channelId);
   const addComment = useAddComment();
   const likeVideo = useLikeVideo();
 
   useEffect(() => {
-    refetchVideo();
-  }, [videoId, refetchVideo]);
+    void refetchVideo();
+  }, [refetchVideo]);
 
   useEffect(() => {
     if (video?.videoUrl) {
@@ -49,15 +57,17 @@ export default function WatchPage() {
 
   const handleLike = async () => {
     if (!isAuthenticated) {
-      toast.error('Please login to like videos');
+      toast.error("Please login to like videos");
       return;
     }
 
     try {
       await likeVideo.mutateAsync(videoId);
-      toast.success('Video liked!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to like video');
+      toast.success("Video liked!");
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Failed to like video";
+      toast.error(msg);
     }
   };
 
@@ -65,12 +75,12 @@ export default function WatchPage() {
     e.preventDefault();
 
     if (!isAuthenticated || !identity) {
-      toast.error('Please login to comment');
+      toast.error("Please login to comment");
       return;
     }
 
     if (!commentText.trim()) {
-      toast.error('Please enter a comment');
+      toast.error("Please enter a comment");
       return;
     }
 
@@ -84,18 +94,20 @@ export default function WatchPage() {
       };
 
       await addComment.mutateAsync(comment);
-      setCommentText('');
-      refetchComments();
-      toast.success('Comment added');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to add comment');
+      setCommentText("");
+      void refetchComments();
+      toast.success("Comment added");
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Failed to add comment";
+      toast.error(msg);
     }
   };
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/watch/${videoId}`;
     navigator.clipboard.writeText(shareUrl);
-    toast.success('Link copied to clipboard');
+    toast.success("Link copied to clipboard");
   };
 
   if (videoLoading) {
@@ -111,8 +123,10 @@ export default function WatchPage() {
   }
 
   if (videoError || !video) {
-    const errorMessage = videoError?.message || '';
-    const isPrivateAccessDenied = errorMessage.includes('Private video access denied');
+    const errorMessage = videoError?.message || "";
+    const isPrivateAccessDenied = errorMessage.includes(
+      "Private video access denied",
+    );
 
     if (isPrivateAccessDenied) {
       return (
@@ -122,19 +136,21 @@ export default function WatchPage() {
               <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-2">Private Video</h2>
               <p className="text-muted-foreground mb-6">
-                This video is private and can only be accessed by the uploader or by purchasing a course that includes this video.
+                This video is private and can only be accessed by the uploader
+                or by purchasing a course that includes this video.
               </p>
               {channel && (
                 <div className="flex gap-2 justify-center">
                   <Button asChild>
-                    <Link to="/channel/$channelId" params={{ channelId: channel.id }}>
+                    <Link
+                      to="/channel/$channelId"
+                      params={{ channelId: channel.id }}
+                    >
                       View Channel Courses
                     </Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link to="/">
-                      Back to Home
-                    </Link>
+                    <Link to="/">Back to Home</Link>
                   </Button>
                 </div>
               )}
@@ -148,17 +164,29 @@ export default function WatchPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Video Not Found</h1>
-          <p className="text-muted-foreground">This video doesn't exist or has been removed.</p>
+          <p className="text-muted-foreground">
+            This video doesn't exist or has been removed.
+          </p>
         </div>
       </div>
     );
   }
 
-  const isOwner = identity && channel && channel.principal.toString() === identity.getPrincipal().toString();
-  const hasTierRequirement = video.requiredTierLevel !== undefined && video.requiredTierLevel !== null;
-  const hasAccess = !hasTierRequirement || (userTierLevel !== undefined && userTierLevel !== null && userTierLevel >= (video.requiredTierLevel || BigInt(0)));
+  const isOwner =
+    identity &&
+    channel &&
+    channel.principal.toString() === identity.getPrincipal().toString();
+  const hasTierRequirement =
+    video.requiredTierLevel !== undefined && video.requiredTierLevel !== null;
+  const hasAccess =
+    !hasTierRequirement ||
+    (userTierLevel !== undefined &&
+      userTierLevel !== null &&
+      userTierLevel >= (video.requiredTierLevel || BigInt(0)));
 
-  const coursesWithVideo = courses.filter((course) => course.videoIds.includes(videoId));
+  const coursesWithVideo = courses.filter((course) =>
+    course.videoIds.includes(videoId),
+  );
 
   return (
     <div className="container py-8 max-w-7xl">
@@ -168,14 +196,19 @@ export default function WatchPage() {
             {hasAccess ? (
               <video key={videoKey} controls className="w-full h-full">
                 <source src={video.videoUrl} type="video/mp4" />
+                <track kind="captions" />
                 Your browser does not support the video tag.
               </video>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white">
                 <div className="text-center">
                   <Lock className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-semibold mb-2">Member-Only Content</p>
-                  <p className="text-sm opacity-75">Subscribe to access this video</p>
+                  <p className="text-lg font-semibold mb-2">
+                    Member-Only Content
+                  </p>
+                  <p className="text-sm opacity-75">
+                    Subscribe to access this video
+                  </p>
                 </div>
               </div>
             )}
@@ -200,7 +233,11 @@ export default function WatchPage() {
           </div>
 
           <div className="flex items-center gap-4 mb-6">
-            <Button variant="outline" onClick={handleLike} disabled={likeVideo.isPending}>
+            <Button
+              variant="outline"
+              onClick={handleLike}
+              disabled={likeVideo.isPending}
+            >
               {likeVideo.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -230,7 +267,9 @@ export default function WatchPage() {
                     </Avatar>
                     <div>
                       <p className="font-semibold">{channel.name}</p>
-                      <p className="text-sm text-muted-foreground">{channel.profile}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {channel.profile}
+                      </p>
                     </div>
                   </Link>
                 </div>
@@ -252,12 +291,16 @@ export default function WatchPage() {
                     className="mb-2"
                   />
                   <Button type="submit" disabled={addComment.isPending}>
-                    {addComment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {addComment.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     Comment
                   </Button>
                 </form>
               ) : (
-                <p className="text-sm text-muted-foreground mb-6">Please login to comment</p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Please login to comment
+                </p>
               )}
 
               <div className="space-y-4">
@@ -285,7 +328,9 @@ export default function WatchPage() {
                       className="block p-3 border rounded-lg hover:bg-muted transition-colors"
                     >
                       <p className="font-semibold">{course.title}</p>
-                      <p className="text-sm text-muted-foreground">{course.videoIds.length} videos</p>
+                      <p className="text-sm text-muted-foreground">
+                        {course.videoIds.length} videos
+                      </p>
                     </Link>
                   ))}
                 </div>
@@ -313,13 +358,18 @@ function CommentItem({ comment }: { comment: Comment }) {
     <div className="flex gap-3">
       <Avatar className="h-8 w-8">
         <AvatarImage src="/assets/generated/default-avatar.dim_100x100.png" />
-        <AvatarFallback>{profile?.name?.[0] || 'U'}</AvatarFallback>
+        <AvatarFallback>{profile?.name?.[0] || "U"}</AvatarFallback>
       </Avatar>
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm">{profile?.name || 'Anonymous'}</span>
+          <span className="font-semibold text-sm">
+            {profile?.name || "Anonymous"}
+          </span>
           <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(Number(comment.timestamp) / 1000000), { addSuffix: true })}
+            {formatDistanceToNow(
+              new Date(Number(comment.timestamp) / 1000000),
+              { addSuffix: true },
+            )}
           </span>
         </div>
         <p className="text-sm">{comment.content}</p>

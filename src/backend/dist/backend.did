@@ -1,0 +1,266 @@
+type http_request_result = 
+ record {
+   body: blob;
+   headers: vec http_header;
+   status: nat;
+ };
+type http_header = 
+ record {
+   name: text;
+   value: text;
+ };
+type _ImmutableObjectStorageRefillResult = 
+ record {
+   success: opt bool;
+   topped_up_amount: opt nat;
+ };
+type _ImmutableObjectStorageRefillInformation = record {
+                                                  proposed_top_up_amount:
+                                                   opt nat;};
+type _ImmutableObjectStorageCreateCertificateResult = 
+ record {
+   blob_hash: text;
+   method: text;
+ };
+type VideoMetadata = 
+ record {
+   category: Category;
+   channelId: ChannelId;
+   description: text;
+   id: VideoId;
+   isPrivate: bool;
+   likeCount: nat;
+   requiredTierLevel: opt nat;
+   thumbnailUrl: text;
+   title: text;
+   uploadDate: Time;
+   videoUrl: text;
+   viewCount: nat;
+ };
+type VideoId = text;
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfile = record {name: text;};
+type TransformationOutput = 
+ record {
+   body: blob;
+   headers: vec http_header;
+   status: nat;
+ };
+type TransformationInput = 
+ record {
+   context: blob;
+   response: http_request_result;
+ };
+type Time = int;
+type SubscriptionStatus = 
+ variant {
+   active;
+   canceled;
+   past_due;
+ };
+type Subscription = 
+ record {
+   channelId: ChannelId;
+   id: text;
+   nextBillingDate: Time;
+   startDate: Time;
+   status: SubscriptionStatus;
+   tierId: text;
+   user: principal;
+ };
+type StripeSessionStatus = 
+ variant {
+   completed: record {
+                response: text;
+                userPrincipal: opt text;
+              };
+   failed: record {error: text;};
+ };
+type StripeConfiguration = 
+ record {
+   allowedCountries: vec text;
+   secretKey: text;
+ };
+type StripeAccount = 
+ record {
+   accountName: text;
+   connectId: opt text;
+   id: text;
+   owner: principal;
+   payoutSettings: opt text;
+   secretKey: text;
+ };
+type ShoppingItem = 
+ record {
+   currency: text;
+   priceInCents: nat;
+   productDescription: text;
+   productName: text;
+   quantity: nat;
+ };
+type PlaylistVisibility = 
+ variant {
+   privateVisibility;
+   publicVisibility;
+ };
+type Playlist = 
+ record {
+   creator: principal;
+   description: text;
+   id: text;
+   title: text;
+   videoIds: vec VideoId;
+   visibility: PlaylistVisibility;
+ };
+type MembershipTier = 
+ record {
+   channelId: ChannelId;
+   description: text;
+   id: text;
+   name: text;
+   priceUsd: nat;
+   tierLevel: nat;
+ };
+type Donation = 
+ record {
+   amountUsd: nat;
+   channelId: ChannelId;
+   donor: principal;
+   id: text;
+   message: opt text;
+   timestamp: Time;
+ };
+type Course = 
+ record {
+   channelId: ChannelId;
+   courseImage: opt text;
+   description: text;
+   id: text;
+   isVisible: bool;
+   priceUsd: opt nat;
+   requiredTierLevel: opt nat;
+   title: text;
+   videoIds: vec VideoId;
+ };
+type Comment = 
+ record {
+   author: principal;
+   content: text;
+   id: text;
+   timestamp: Time;
+   videoId: VideoId;
+ };
+type ChannelStripeConnection = 
+ record {
+   channelId: ChannelId;
+   stripeAccountId: text;
+ };
+type ChannelId = text;
+type Channel = 
+ record {
+   id: ChannelId;
+   name: text;
+   "principal": principal;
+   profile: text;
+ };
+type Category = 
+ variant {
+   comedy;
+   education;
+   gaming;
+   music;
+   other;
+   vlog;
+ };
+service : {
+  _immutableObjectStorageBlobsAreLive: (hashes: vec blob) -> (vec bool) query;
+  _immutableObjectStorageBlobsToDelete: () -> (vec blob) query;
+  _immutableObjectStorageConfirmBlobDeletion: (blobs: vec blob) -> ();
+  _immutableObjectStorageCreateCertificate: (blobHash: text) ->
+   (_ImmutableObjectStorageCreateCertificateResult);
+  _immutableObjectStorageRefillCashier: (refillInformation:
+   opt _ImmutableObjectStorageRefillInformation) ->
+   (_ImmutableObjectStorageRefillResult);
+  _immutableObjectStorageUpdateGatewayPrincipals: () -> ();
+  _initializeAccessControl: () -> ();
+  addComment: (comment: Comment) -> ();
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  cancelSubscription: (subscriptionId: text) -> ();
+  connectChannelToStripeAccount: (connection: ChannelStripeConnection) -> ();
+  createChannel: (channel: Channel) -> ();
+  createCheckoutSession: (items: vec ShoppingItem, successUrl: text,
+   cancelUrl: text) -> (text);
+  createCourse: (course: Course) -> ();
+  createMembershipTier: (tier: MembershipTier) -> ();
+  createPlaylist: (playlist: Playlist) -> ();
+  createStripeAccount: (account: StripeAccount) -> ();
+  createSubscription: (subscription: Subscription) -> ();
+  deleteCourse: (courseId: text) -> ();
+  deleteMembershipTier: (tierId: text) -> ();
+  deletePlaylist: (playlistId: text) -> ();
+  deleteStripeAccount: (accountId: text) -> ();
+  deleteVideo: (videoId: VideoId) -> ();
+  followChannel: (channelId: ChannelId) -> ();
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getChannel: (channelId: ChannelId) -> (opt Channel) query;
+  getChannelCourses: (channelId: ChannelId) -> (vec Course) query;
+  getChannelDonations: (channelId: ChannelId) -> (vec Donation) query;
+  getChannelFollowers: (channelId: ChannelId) -> (vec principal) query;
+  getChannelMembershipTiers: (channelId: ChannelId) ->
+   (vec MembershipTier) query;
+  getChannelStripeConnection: (channelId: ChannelId) ->
+   (opt ChannelStripeConnection) query;
+  getChannelVideos: (channelId: ChannelId) -> (vec VideoMetadata) query;
+  getComments: (videoId: VideoId) -> (vec Comment) query;
+  getCourse: (courseId: text) -> (opt Course) query;
+  getFollowedChannels: () -> (vec ChannelId) query;
+  getFullVideoMetadata: (videoId: VideoId) ->
+   (opt record {
+          channel: Channel;
+          video: VideoMetadata;
+        }) query;
+  getPersonalizedCourses: () -> (vec Course) query;
+  getPlaylist: (playlistId: text) -> (opt Playlist) query;
+  getPublicPlaylists: () -> (vec Playlist) query;
+  getStripeAccount: (accountId: text) -> (opt StripeAccount) query;
+  getStripeSessionStatus: (sessionId: text) -> (StripeSessionStatus);
+  getThumbnailUrl: (videoId: VideoId) -> (opt text) query;
+  getUserChannels: () -> (vec Channel) query;
+  getUserDonationHistory: () -> (vec Donation) query;
+  getUserPlaylists: () -> (vec Playlist) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  getUserStripeAccounts: () -> (vec StripeAccount) query;
+  getUserSubscriptionTierLevel: (channelId: ChannelId) -> (opt nat) query;
+  getVideo: (videoId: VideoId) -> (opt VideoMetadata) query;
+  getVideoAuthenticated: (videoId: VideoId) -> (opt VideoMetadata) query;
+  getVideoUrl: (videoId: VideoId) -> (opt text) query;
+  getVideosByCategory: (category: Category) -> (vec VideoMetadata) query;
+  hasActiveSubscription: (channelId: ChannelId) -> (bool) query;
+  initializeAccessControl: () -> ();
+  isCallerAdmin: () -> (bool) query;
+  isFollowingChannel: (channelId: ChannelId) -> (bool) query;
+  isStripeConfigured: () -> (bool) query;
+  likeVideo: (videoId: VideoId) -> ();
+  recordDonation: (donation: Donation) -> ();
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  searchVideos: (searchTerm: text) -> (vec VideoMetadata) query;
+  setStripeConfiguration: (config: StripeConfiguration) -> ();
+  toggleVideoPrivacy: (videoId: VideoId) -> ();
+  transform: (input: TransformationInput) -> (TransformationOutput) query;
+  unfollowChannel: (channelId: ChannelId) -> ();
+  updateCallerUserProfile: (updatedProfile: UserProfile) -> ();
+  updateChannel: (channelId: ChannelId, updatedName: text, updatedProfile:
+   text) -> ();
+  updateCourse: (courseId: text, updatedCourse: Course) -> ();
+  updateMembershipTier: (tierId: text, updatedTier: MembershipTier) -> ();
+  updatePlaylist: (playlistId: text, updatedPlaylist: Playlist) -> ();
+  updateStripeAccount: (accountId: text, updatedAccount: StripeAccount) -> ();
+  updateVideo: (videoId: VideoId, updatedMetadata: VideoMetadata) -> ();
+  uploadVideo: (metadata: VideoMetadata) -> ();
+}

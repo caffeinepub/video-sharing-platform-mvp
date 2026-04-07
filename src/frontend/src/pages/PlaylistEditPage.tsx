@@ -1,9 +1,9 @@
-import { useParams } from '@tanstack/react-router';
-import { useGetPlaylist } from '../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams } from "@tanstack/react-router";
+import { useGetPlaylist } from "../hooks/useQueries";
 
 export default function PlaylistEditPage() {
-  const { playlistId } = useParams({ from: '/playlist/$playlistId/edit' });
+  const { playlistId } = useParams({ from: "/playlist/$playlistId/edit" });
   const { data: playlist, isLoading } = useGetPlaylist(playlistId);
 
   if (isLoading) {
@@ -22,7 +22,9 @@ export default function PlaylistEditPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Playlist Not Found</h1>
-          <p className="text-muted-foreground">This playlist doesn't exist or you don't have access to it.</p>
+          <p className="text-muted-foreground">
+            This playlist doesn't exist or you don't have access to it.
+          </p>
         </div>
       </div>
     );

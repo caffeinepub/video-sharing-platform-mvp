@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useIsStripeConfigured, useSetStripeConfiguration, useIsCallerAdmin } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,45 +6,64 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useIsCallerAdmin,
+  useIsStripeConfigured,
+  useSetStripeConfiguration,
+} from "../hooks/useQueries";
 
 export default function StripeConfigurationSetup() {
   const { isAuthenticated } = useAuth();
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
-  const { data: isConfigured, isLoading: isConfiguredLoading } = useIsStripeConfigured();
+  const { data: isConfigured, isLoading: isConfiguredLoading } =
+    useIsStripeConfigured();
   const setConfiguration = useSetStripeConfiguration();
 
   const [open, setOpen] = useState(false);
-  const [secretKey, setSecretKey] = useState('');
-  const [countries, setCountries] = useState('US, CA, GB');
+  const [secretKey, setSecretKey] = useState("");
+  const [countries, setCountries] = useState("US, CA, GB");
 
   useEffect(() => {
-    if (isAuthenticated && !isAdminLoading && !isConfiguredLoading && isAdmin && !isConfigured) {
+    if (
+      isAuthenticated &&
+      !isAdminLoading &&
+      !isConfiguredLoading &&
+      isAdmin &&
+      !isConfigured
+    ) {
       setOpen(true);
     }
-  }, [isAuthenticated, isAdmin, isConfigured, isAdminLoading, isConfiguredLoading]);
+  }, [
+    isAuthenticated,
+    isAdmin,
+    isConfigured,
+    isAdminLoading,
+    isConfiguredLoading,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!secretKey.trim()) {
-      toast.error('Please enter your Stripe secret key');
+      toast.error("Please enter your Stripe secret key");
       return;
     }
 
     const allowedCountries = countries
-      .split(',')
+      .split(",")
       .map((c) => c.trim().toUpperCase())
       .filter((c) => c.length > 0);
 
     if (allowedCountries.length === 0) {
-      toast.error('Please enter at least one country code');
+      toast.error("Please enter at least one country code");
       return;
     }
 
@@ -55,10 +72,14 @@ export default function StripeConfigurationSetup() {
         secretKey: secretKey.trim(),
         allowedCountries,
       });
-      toast.success('Stripe configuration saved successfully');
+      toast.success("Stripe configuration saved successfully");
       setOpen(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save Stripe configuration');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to save Stripe configuration";
+      toast.error(message);
     }
   };
 
@@ -73,7 +94,8 @@ export default function StripeConfigurationSetup() {
           <DialogHeader>
             <DialogTitle>Configure Stripe Payments</DialogTitle>
             <DialogDescription>
-              Set up Stripe to enable subscriptions and donations on your platform.
+              Set up Stripe to enable subscriptions and donations on your
+              platform.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -108,7 +130,9 @@ export default function StripeConfigurationSetup() {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={setConfiguration.isPending}>
-              {setConfiguration.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {setConfiguration.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Save Configuration
             </Button>
           </DialogFooter>

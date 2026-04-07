@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { useGetUserPlaylists, useCreatePlaylist, useUpdatePlaylist } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -8,31 +7,41 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Plus, ListPlus, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { PlaylistVisibility } from '../backend';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { ListPlus, Loader2, Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { PlaylistVisibility } from "../backend";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useCreatePlaylist,
+  useGetUserPlaylists,
+  useUpdatePlaylist,
+} from "../hooks/useQueries";
 
 interface AddToPlaylistDialogProps {
   videoId: string;
   trigger?: React.ReactNode;
 }
 
-export default function AddToPlaylistDialog({ videoId, trigger }: AddToPlaylistDialogProps) {
+export default function AddToPlaylistDialog({
+  videoId,
+  trigger,
+}: AddToPlaylistDialogProps) {
   const { identity } = useAuth();
   const [open, setOpen] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
-  const [newPlaylistDescription, setNewPlaylistDescription] = useState('');
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
+  const [newPlaylistDescription, setNewPlaylistDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [selectedPlaylists, setSelectedPlaylists] = useState<Set<string>>(new Set());
+  const [_selectedPlaylists, _setSelectedPlaylists] = useState<Set<string>>(
+    new Set(),
+  );
 
   const { data: playlists = [], isLoading } = useGetUserPlaylists();
   const createPlaylist = useCreatePlaylist();
@@ -47,17 +56,21 @@ export default function AddToPlaylistDialog({ videoId, trigger }: AddToPlaylistD
         creator: identity.getPrincipal(),
         title: newPlaylistTitle.trim(),
         description: newPlaylistDescription.trim(),
-        visibility: isPublic ? PlaylistVisibility.publicVisibility : PlaylistVisibility.privateVisibility,
+        visibility: isPublic
+          ? PlaylistVisibility.publicVisibility
+          : PlaylistVisibility.privateVisibility,
         videoIds: [videoId],
       };
 
       await createPlaylist.mutateAsync(newPlaylist);
-      toast.success('Playlist created and video added');
-      setNewPlaylistTitle('');
-      setNewPlaylistDescription('');
+      toast.success("Playlist created and video added");
+      setNewPlaylistTitle("");
+      setNewPlaylistDescription("");
       setShowCreateForm(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create playlist');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create playlist";
+      toast.error(message);
     }
   };
 
@@ -81,9 +94,11 @@ export default function AddToPlaylistDialog({ videoId, trigger }: AddToPlaylistD
         },
       });
 
-      toast.success(hasVideo ? 'Removed from playlist' : 'Added to playlist');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update playlist');
+      toast.success(hasVideo ? "Removed from playlist" : "Added to playlist");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update playlist";
+      toast.error(message);
     }
   };
 
@@ -113,13 +128,19 @@ export default function AddToPlaylistDialog({ videoId, trigger }: AddToPlaylistD
               <ScrollArea className="h-[200px] pr-4">
                 <div className="space-y-2">
                   {playlists.map((playlist) => {
-                    const hasVideo = playlist.videoIds?.includes(videoId) || false;
+                    const hasVideo =
+                      playlist.videoIds?.includes(videoId) || false;
                     return (
-                      <div key={playlist.id} className="flex items-center space-x-2">
+                      <div
+                        key={playlist.id}
+                        className="flex items-center space-x-2"
+                      >
                         <Checkbox
                           id={playlist.id}
                           checked={hasVideo}
-                          onCheckedChange={() => handleTogglePlaylist(playlist.id)}
+                          onCheckedChange={() =>
+                            handleTogglePlaylist(playlist.id)
+                          }
                         />
                         <label
                           htmlFor={playlist.id}
@@ -157,7 +178,9 @@ export default function AddToPlaylistDialog({ videoId, trigger }: AddToPlaylistD
                       id="description"
                       placeholder="Description"
                       value={newPlaylistDescription}
-                      onChange={(e) => setNewPlaylistDescription(e.target.value)}
+                      onChange={(e) =>
+                        setNewPlaylistDescription(e.target.value)
+                      }
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -171,10 +194,14 @@ export default function AddToPlaylistDialog({ videoId, trigger }: AddToPlaylistD
                   <div className="flex gap-2">
                     <Button
                       onClick={handleCreatePlaylist}
-                      disabled={!newPlaylistTitle.trim() || createPlaylist.isPending}
+                      disabled={
+                        !newPlaylistTitle.trim() || createPlaylist.isPending
+                      }
                       className="flex-1"
                     >
-                      {createPlaylist.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {createPlaylist.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
                       Create
                     </Button>
                     <Button

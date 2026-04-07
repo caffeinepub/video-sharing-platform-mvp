@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useGetChannelVideos, useGetChannelMembershipTiers, useUpdateCourse } from '../hooks/useQueries';
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -7,18 +7,28 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { Course } from '../backend';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { Course } from "../backend";
+import {
+  useGetChannelMembershipTiers,
+  useGetChannelVideos,
+  useUpdateCourse,
+} from "../hooks/useQueries";
 
 interface EditCourseDialogProps {
   course: Course;
@@ -26,7 +36,11 @@ interface EditCourseDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function EditCourseDialog({ course, open, onOpenChange }: EditCourseDialogProps) {
+export default function EditCourseDialog({
+  course,
+  open,
+  onOpenChange,
+}: EditCourseDialogProps) {
   const { data: videos = [] } = useGetChannelVideos(course.channelId);
   const { data: tiers = [] } = useGetChannelMembershipTiers(course.channelId);
   const updateCourse = useUpdateCourse();
@@ -34,10 +48,12 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
   const [formData, setFormData] = useState({
     title: course.title,
     description: course.description,
-    priceUsd: course.priceUsd ? Number(course.priceUsd).toString() : '',
-    requiredTierLevel: course.requiredTierLevel !== undefined && course.requiredTierLevel !== null 
-      ? Number(course.requiredTierLevel).toString() 
-      : 'none',
+    priceUsd: course.priceUsd ? Number(course.priceUsd).toString() : "",
+    requiredTierLevel:
+      course.requiredTierLevel !== undefined &&
+      course.requiredTierLevel !== null
+        ? Number(course.requiredTierLevel).toString()
+        : "none",
     selectedVideoIds: course.videoIds,
     isVisible: course.isVisible,
   });
@@ -50,10 +66,12 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
       setFormData({
         title: course.title,
         description: course.description,
-        priceUsd: course.priceUsd ? Number(course.priceUsd).toString() : '',
-        requiredTierLevel: course.requiredTierLevel !== undefined && course.requiredTierLevel !== null 
-          ? Number(course.requiredTierLevel).toString() 
-          : 'none',
+        priceUsd: course.priceUsd ? Number(course.priceUsd).toString() : "",
+        requiredTierLevel:
+          course.requiredTierLevel !== undefined &&
+          course.requiredTierLevel !== null
+            ? Number(course.requiredTierLevel).toString()
+            : "none",
         selectedVideoIds: course.videoIds,
         isVisible: course.isVisible,
       });
@@ -65,12 +83,12 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB');
+        toast.error("Image must be less than 5MB");
         return;
       }
       setImageFile(file);
@@ -79,22 +97,22 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
-      toast.error('Please enter a course title');
+      toast.error("Please enter a course title");
       return;
     }
 
     if (!formData.description.trim()) {
-      toast.error('Please enter a course description');
+      toast.error("Please enter a course description");
       return;
     }
 
     if (formData.selectedVideoIds.length === 0) {
-      toast.error('Please select at least one video');
+      toast.error("Please select at least one video");
       return;
     }
 
-    if (formData.priceUsd && parseFloat(formData.priceUsd) < 0) {
-      toast.error('Price must be a positive number');
+    if (formData.priceUsd && Number.parseFloat(formData.priceUsd) < 0) {
+      toast.error("Price must be a positive number");
       return;
     }
 
@@ -104,28 +122,51 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
       if (imageFile) {
         const arrayBuffer = await imageFile.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        const blob = (window as any).ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage: number) => {
-          setUploadProgress(percentage);
-        });
-        courseImage = blob.getDirectURL();
+        const blob = (
+          window as Window & {
+            ExternalBlob?: {
+              fromBytes: (b: Uint8Array) => {
+                withUploadProgress: (cb: (p: number) => void) => {
+                  getDirectURL: () => string;
+                };
+              };
+            };
+          }
+        ).ExternalBlob?.fromBytes(uint8Array).withUploadProgress(
+          (percentage: number) => {
+            setUploadProgress(percentage);
+          },
+        );
+        courseImage = blob?.getDirectURL() ?? courseImage;
       }
 
       const updatedCourse: Course = {
         ...course,
         title: formData.title.trim(),
         description: formData.description.trim(),
-        priceUsd: formData.priceUsd ? BigInt(Math.round(parseFloat(formData.priceUsd) * 100)) / BigInt(100) : undefined,
-        requiredTierLevel: formData.requiredTierLevel !== 'none' ? BigInt(formData.requiredTierLevel) : undefined,
+        priceUsd: formData.priceUsd
+          ? BigInt(Math.round(Number.parseFloat(formData.priceUsd) * 100)) /
+            BigInt(100)
+          : undefined,
+        requiredTierLevel:
+          formData.requiredTierLevel !== "none"
+            ? BigInt(formData.requiredTierLevel)
+            : undefined,
         videoIds: formData.selectedVideoIds,
         courseImage,
         isVisible: formData.isVisible,
       };
 
-      await updateCourse.mutateAsync({ courseId: course.id, course: updatedCourse });
-      toast.success('Course updated successfully');
+      await updateCourse.mutateAsync({
+        courseId: course.id,
+        course: updatedCourse,
+      });
+      toast.success("Course updated successfully");
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update course');
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update course",
+      );
     }
   };
 
@@ -144,7 +185,8 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
         <DialogHeader>
           <DialogTitle>Edit Course</DialogTitle>
           <DialogDescription>
-            Update your course settings including title, description, pricing, visibility, and video selection
+            Update your course settings including title, description, pricing,
+            visibility, and video selection
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -154,7 +196,9 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
               id="title"
               placeholder="e.g., Complete Web Development Bootcamp"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
             />
           </div>
           <div className="grid gap-2">
@@ -163,7 +207,9 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
               id="description"
               placeholder="Describe what students will learn in this course..."
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={3}
             />
           </div>
@@ -191,7 +237,9 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
                 />
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Upload a new image or keep the existing one. Max 5MB.</p>
+            <p className="text-xs text-muted-foreground">
+              Upload a new image or keep the existing one. Max 5MB.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
@@ -203,15 +251,21 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
                 min="0"
                 placeholder="29.99"
                 value={formData.priceUsd}
-                onChange={(e) => setFormData({ ...formData, priceUsd: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, priceUsd: e.target.value })
+                }
               />
-              <p className="text-xs text-muted-foreground">Leave empty for free course</p>
+              <p className="text-xs text-muted-foreground">
+                Leave empty for free course
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="tier">Required Tier (optional)</Label>
               <Select
                 value={formData.requiredTierLevel}
-                onValueChange={(value) => setFormData({ ...formData, requiredTierLevel: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, requiredTierLevel: value })
+                }
               >
                 <SelectTrigger id="tier">
                   <SelectValue placeholder="No tier required" />
@@ -219,7 +273,10 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
                 <SelectContent>
                   <SelectItem value="none">No tier required</SelectItem>
                   {tiers.map((tier) => (
-                    <SelectItem key={tier.id} value={Number(tier.tierLevel).toString()}>
+                    <SelectItem
+                      key={tier.id}
+                      value={Number(tier.tierLevel).toString()}
+                    >
                       {tier.name} (Level {Number(tier.tierLevel)})
                     </SelectItem>
                   ))}
@@ -231,13 +288,17 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
             <div className="space-y-0.5">
               <Label htmlFor="visibility">Course Visibility</Label>
               <p className="text-xs text-muted-foreground">
-                {formData.isVisible ? 'Course is visible to all users' : 'Course is hidden from public view'}
+                {formData.isVisible
+                  ? "Course is visible to all users"
+                  : "Course is hidden from public view"}
               </p>
             </div>
             <Switch
               id="visibility"
               checked={formData.isVisible}
-              onCheckedChange={(checked) => setFormData({ ...formData, isVisible: checked })}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, isVisible: checked })
+              }
             />
           </div>
           <div className="grid gap-2">
@@ -277,7 +338,9 @@ export default function EditCourseDialog({ course, open, onOpenChange }: EditCou
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={updateCourse.isPending}>
-            {updateCourse.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {updateCourse.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
             Save Changes
           </Button>
         </DialogFooter>

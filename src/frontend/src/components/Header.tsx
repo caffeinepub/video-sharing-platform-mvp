@@ -1,32 +1,40 @@
-import { Link, useNavigate } from '@tanstack/react-router';
-import { Search, User, Settings, Video, Heart, List, CreditCard } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '../contexts/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useGetCallerUserProfile } from '../hooks/useQueries';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  CreditCard,
+  Heart,
+  List,
+  Search,
+  Settings,
+  User,
+  Video,
+} from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useGetCallerUserProfile } from "../hooks/useQueries";
 
 export default function Header() {
   const { login, logout, isAuthenticated, isInitializing } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: userProfile } = useGetCallerUserProfile();
 
   const handleAuth = async () => {
     if (isAuthenticated) {
       await logout();
       queryClient.clear();
-      navigate({ to: '/' });
+      navigate({ to: "/" });
     } else {
       login();
     }
@@ -35,7 +43,7 @@ export default function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate({ to: '/search', search: { q: searchQuery } });
+      navigate({ to: "/search", search: { q: searchQuery } });
     }
   };
 
@@ -49,6 +57,8 @@ export default function Header() {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-label="VideoHub"
+              role="img"
             >
               <path
                 strokeLinecap="round"
@@ -69,7 +79,10 @@ export default function Header() {
           </span>
         </Link>
 
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
+        <form
+          onSubmit={handleSearch}
+          className="hidden md:flex flex-1 max-w-xl mx-8"
+        >
           <div className="relative w-full">
             <Input
               type="search"
@@ -118,36 +131,51 @@ export default function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-1.5 text-sm font-semibold">
-                  {userProfile?.name || 'User'}
+                  {userProfile?.name || "User"}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/my-channels" className="flex items-center cursor-pointer">
+                  <Link
+                    to="/my-channels"
+                    className="flex items-center cursor-pointer"
+                  >
                     <Video className="mr-2 h-4 w-4" />
                     My Channels
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/following" className="flex items-center cursor-pointer">
+                  <Link
+                    to="/following"
+                    className="flex items-center cursor-pointer"
+                  >
                     <Heart className="mr-2 h-4 w-4" />
                     Following
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/playlists" className="flex items-center cursor-pointer">
+                  <Link
+                    to="/playlists"
+                    className="flex items-center cursor-pointer"
+                  >
                     <List className="mr-2 h-4 w-4" />
                     My Playlists
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/subscriptions" className="flex items-center cursor-pointer">
+                  <Link
+                    to="/subscriptions"
+                    className="flex items-center cursor-pointer"
+                  >
                     <CreditCard className="mr-2 h-4 w-4" />
                     My Subscriptions
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/settings/profile" className="flex items-center cursor-pointer">
+                  <Link
+                    to="/settings/profile"
+                    className="flex items-center cursor-pointer"
+                  >
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Link>
@@ -159,10 +187,14 @@ export default function Header() {
           <Button
             onClick={handleAuth}
             disabled={isInitializing}
-            variant={isAuthenticated ? 'outline' : 'default'}
+            variant={isAuthenticated ? "outline" : "default"}
             size="sm"
           >
-            {isInitializing ? 'Loading...' : isAuthenticated ? 'Logout' : 'Login'}
+            {isInitializing
+              ? "Loading..."
+              : isAuthenticated
+                ? "Logout"
+                : "Login"}
           </Button>
         </div>
       </div>

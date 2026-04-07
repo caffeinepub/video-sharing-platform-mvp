@@ -1,22 +1,35 @@
-import { useGetChannelMembershipTiers, useHasActiveSubscription, useGetUserSubscriptionTierLevel } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Check, Crown } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Check, Crown } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useGetChannelMembershipTiers,
+  useGetUserSubscriptionTierLevel,
+  useHasActiveSubscription,
+} from "../hooks/useQueries";
 
 interface MembershipTiersSectionProps {
   channelId: string;
   onSubscribe: (tierId: string, tierName: string, priceUsd: number) => void;
 }
 
-export default function MembershipTiersSection({ channelId, onSubscribe }: MembershipTiersSectionProps) {
+export default function MembershipTiersSection({
+  channelId,
+  onSubscribe,
+}: MembershipTiersSectionProps) {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const { data: tiers = [], isLoading } = useGetChannelMembershipTiers(channelId);
-  const { data: hasSubscription } = useHasActiveSubscription(channelId);
+  const { data: tiers = [], isLoading } =
+    useGetChannelMembershipTiers(channelId);
+  const { data: _hasSubscription } = useHasActiveSubscription(channelId);
   const { data: userTierLevel } = useGetUserSubscriptionTierLevel(channelId);
 
   if (isLoading) {
@@ -38,11 +51,17 @@ export default function MembershipTiersSection({ channelId, onSubscribe }: Membe
     return null;
   }
 
-  const sortedTiers = [...tiers].sort((a, b) => Number(a.tierLevel) - Number(b.tierLevel));
+  const sortedTiers = [...tiers].sort(
+    (a, b) => Number(a.tierLevel) - Number(b.tierLevel),
+  );
 
-  const handleSubscribeClick = (tierId: string, tierName: string, priceUsd: bigint) => {
+  const handleSubscribeClick = (
+    tierId: string,
+    tierName: string,
+    priceUsd: bigint,
+  ) => {
     if (!isAuthenticated) {
-      toast.error('Please login to subscribe');
+      toast.error("Please login to subscribe");
       return;
     }
     onSubscribe(tierId, tierName, Number(priceUsd));
@@ -58,11 +77,20 @@ export default function MembershipTiersSection({ channelId, onSubscribe }: Membe
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedTiers.map((tier) => {
-          const isCurrentTier = userTierLevel !== null && userTierLevel !== undefined && Number(userTierLevel) === Number(tier.tierLevel);
-          const hasAccess = userTierLevel !== null && userTierLevel !== undefined && Number(userTierLevel) >= Number(tier.tierLevel);
+          const isCurrentTier =
+            userTierLevel !== null &&
+            userTierLevel !== undefined &&
+            Number(userTierLevel) === Number(tier.tierLevel);
+          const hasAccess =
+            userTierLevel !== null &&
+            userTierLevel !== undefined &&
+            Number(userTierLevel) >= Number(tier.tierLevel);
 
           return (
-            <Card key={tier.id} className={`relative ${isCurrentTier ? 'border-primary shadow-lg' : ''}`}>
+            <Card
+              key={tier.id}
+              className={`relative ${isCurrentTier ? "border-primary shadow-lg" : ""}`}
+            >
               {isCurrentTier && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground">
@@ -74,10 +102,15 @@ export default function MembershipTiersSection({ channelId, onSubscribe }: Membe
               <CardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <CardTitle>{tier.name}</CardTitle>
-                  <Badge variant="outline">Level {Number(tier.tierLevel)}</Badge>
+                  <Badge variant="outline">
+                    Level {Number(tier.tierLevel)}
+                  </Badge>
                 </div>
                 <CardDescription className="text-2xl font-bold text-foreground">
-                  ${Number(tier.priceUsd)}<span className="text-sm font-normal text-muted-foreground">/month</span>
+                  ${Number(tier.priceUsd)}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    /month
+                  </span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -89,12 +122,14 @@ export default function MembershipTiersSection({ channelId, onSubscribe }: Membe
                 {hasAccess ? (
                   <Button variant="outline" className="w-full" disabled>
                     <Check className="mr-2 h-4 w-4" />
-                    {isCurrentTier ? 'Current Tier' : 'Access Granted'}
+                    {isCurrentTier ? "Current Tier" : "Access Granted"}
                   </Button>
                 ) : (
                   <Button
                     className="w-full"
-                    onClick={() => handleSubscribeClick(tier.id, tier.name, tier.priceUsd)}
+                    onClick={() =>
+                      handleSubscribeClick(tier.id, tier.name, tier.priceUsd)
+                    }
                   >
                     Subscribe
                   </Button>

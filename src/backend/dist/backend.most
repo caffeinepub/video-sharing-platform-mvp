@@ -1,0 +1,334 @@
+// Version: 3.0.0
+type Category__164941945 =
+  {#comedy; #education; #gaming; #music; #other; #vlog};
+type Category__832295914 =
+  {#comedy; #education; #gaming; #music; #other; #vlog};
+type ChannelId__279479923 = Text;
+type ChannelId__702600557 = Text;
+type ChannelStripeConnection__144218634 =
+  {channelId : ChannelId__702600557; stripeAccountId : Text};
+type ChannelStripeConnection__147939617 =
+  {channelId : ChannelId__279479923; stripeAccountId : Text};
+type Channel__349342183 =
+  {
+    id : ChannelId__279479923;
+    name : Text;
+    principal : Principal;
+    profile : Text
+  };
+type Channel__378696597 =
+  {
+    id : ChannelId__702600557;
+    name : Text;
+    principal : Principal;
+    profile : Text
+  };
+type Comment__473346131 =
+  {
+    author : Principal;
+    content : Text;
+    id : Text;
+    timestamp : Time__900049286;
+    videoId : VideoId__796947478
+  };
+type Comment__975843394 =
+  {
+    author : Principal;
+    content : Text;
+    id : Text;
+    timestamp : Time__900049286;
+    videoId : VideoId__746162380
+  };
+type Course__388460598 =
+  {
+    channelId : ChannelId__279479923;
+    courseImage : ?Text;
+    description : Text;
+    id : Text;
+    isVisible : Bool;
+    priceUsd : ?Nat;
+    requiredTierLevel : ?Nat;
+    title : Text;
+    videoIds : [VideoId__796947478]
+  };
+type Course__599477008 =
+  {
+    channelId : ChannelId__702600557;
+    courseImage : ?Text;
+    description : Text;
+    id : Text;
+    isVisible : Bool;
+    priceUsd : ?Nat;
+    requiredTierLevel : ?Nat;
+    title : Text;
+    videoIds : [VideoId__746162380]
+  };
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type Donation__138140186 =
+  {
+    amountUsd : Nat;
+    channelId : ChannelId__279479923;
+    donor : Principal;
+    id : Text;
+    message : ?Text;
+    timestamp : Time__900049286
+  };
+type Donation__558724065 =
+  {
+    amountUsd : Nat;
+    channelId : ChannelId__702600557;
+    donor : Principal;
+    id : Text;
+    message : ?Text;
+    timestamp : Time__900049286
+  };
+type Int__270357528 = Int__616954475;
+type Int__616954475 = Int;
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type Map__158565046<K, V> = Map__297112838<K, V>;
+type Map__297112838<K, V> =
+  {var root : Node__46230540<K, V>; var size : Nat__490723111};
+type Map__334413012<K, V> = {root : Tree__4145630<K, V>; size : Nat};
+type Map__605269027<K, V> = Map__158565046<K, V>;
+type MembershipTier__110068787 =
+  {
+    channelId : ChannelId__702600557;
+    description : Text;
+    id : Text;
+    name : Text;
+    priceUsd : Nat;
+    tierLevel : Nat
+  };
+type MembershipTier__893853907 =
+  {
+    channelId : ChannelId__279479923;
+    description : Text;
+    id : Text;
+    name : Text;
+    priceUsd : Nat;
+    tierLevel : Nat
+  };
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OldAccessControlState__633397628 =
+  {
+    var adminAssigned : Bool;
+    var userRoles : Map__334413012<Principal, UserRole__403611420>
+  };
+type OldStorageState__667501572 =
+  {var authorizedPrincipals : [Principal]; var blobTodeletete : [Blob]};
+type PlaylistVisibility__280949471 = {#privateVisibility; #publicVisibility};
+type PlaylistVisibility__285600550 = {#privateVisibility; #publicVisibility};
+type Playlist__42993582 =
+  {
+    creator : Principal;
+    description : Text;
+    id : Text;
+    title : Text;
+    videoIds : [VideoId__746162380];
+    visibility : PlaylistVisibility__280949471
+  };
+type Playlist__961883281 =
+  {
+    creator : Principal;
+    description : Text;
+    id : Text;
+    title : Text;
+    videoIds : [VideoId__796947478];
+    visibility : PlaylistVisibility__285600550
+  };
+type StripeAccount__194378476 =
+  {
+    accountName : Text;
+    connectId : ?Text;
+    id : Text;
+    owner : Principal;
+    payoutSettings : ?Text;
+    secretKey : Text
+  };
+type StripeAccount__991705083 =
+  {
+    accountName : Text;
+    connectId : ?Text;
+    id : Text;
+    owner : Principal;
+    payoutSettings : ?Text;
+    secretKey : Text
+  };
+type StripeConfiguration__499622509 =
+  {allowedCountries : [Text]; secretKey : Text};
+type StripeConfiguration__96897619 =
+  {allowedCountries : [Text]; secretKey : Text};
+type SubscriptionStatus__278950313 = {#active; #canceled; #past_due};
+type SubscriptionStatus__443855471 = {#active; #canceled; #past_due};
+type Subscription__231062474 =
+  {
+    channelId : ChannelId__279479923;
+    id : Text;
+    nextBillingDate : Time__900049286;
+    startDate : Time__900049286;
+    status : SubscriptionStatus__278950313;
+    tierId : Text;
+    user : Principal
+  };
+type Subscription__903667321 =
+  {
+    channelId : ChannelId__702600557;
+    id : Text;
+    nextBillingDate : Time__900049286;
+    startDate : Time__900049286;
+    status : SubscriptionStatus__443855471;
+    tierId : Text;
+    user : Principal
+  };
+type Time__796480547 = Int__270357528;
+type Time__900049286 = Time__796480547;
+type Tree__4145630<K, V> =
+  {
+    #black : (Tree__4145630<K, V>, K, V, Tree__4145630<K, V>);
+    #leaf;
+    #red : (Tree__4145630<K, V>, K, V, Tree__4145630<K, V>)
+  };
+type UserProfile__315128327 = {name : Text};
+type UserProfile__491224006 = {name : Text};
+type UserRole__1054455867 = {#admin; #guest; #user};
+type UserRole__403611420 = {#admin; #guest; #user};
+type VideoId__746162380 = Text;
+type VideoId__796947478 = Text;
+type VideoMetadata__801886752 =
+  {
+    category : Category__164941945;
+    channelId : ChannelId__279479923;
+    description : Text;
+    id : VideoId__796947478;
+    isPrivate : Bool;
+    likeCount : Nat;
+    requiredTierLevel : ?Nat;
+    thumbnailUrl : Text;
+    title : Text;
+    uploadDate : Time__900049286;
+    videoUrl : Text;
+    viewCount : Nat
+  };
+type VideoMetadata__949337169 =
+  {
+    category : Category__832295914;
+    channelId : ChannelId__702600557;
+    description : Text;
+    id : VideoId__746162380;
+    isPrivate : Bool;
+    likeCount : Nat;
+    requiredTierLevel : ?Nat;
+    thumbnailUrl : Text;
+    title : Text;
+    uploadDate : Time__900049286;
+    videoUrl : Text;
+    viewCount : Nat
+  };
+actor ({
+  stable MAX_CHANNELS_PER_USER : Nat;
+  stable MAX_CHANNEL_NAME_LEN : Nat;
+  stable MAX_DESCRIPTION_LEN : Nat;
+  stable MAX_VIDEOS_PER_HOUR : Nat;
+  stable MAX_VIDEO_TITLE_LEN : Nat;
+  stable ONE_HOUR_NS : Int;
+  in accessControlState : OldAccessControlState__633397628;
+  in var channelFollows : Map__334413012<Principal, [ChannelId__702600557]>;
+  in var channelStripeConnections :
+    Map__334413012<Text, ChannelStripeConnection__144218634>;
+  in var channels : Map__334413012<Text, Channel__378696597>;
+  in var comments : Map__334413012<Text, Comment__975843394>;
+  in var configuration : ?StripeConfiguration__499622509;
+  in var courses : Map__334413012<Text, Course__599477008>;
+  in var donations : Map__334413012<Text, Donation__558724065>;
+  in var membershipTiers : Map__334413012<Text, MembershipTier__110068787>;
+  in var playlists : Map__334413012<Text, Playlist__42993582>;
+  in storage : OldStorageState__667501572;
+  in var stripeAccounts : Map__334413012<Text, StripeAccount__194378476>;
+  in var subscriptions : Map__334413012<Text, Subscription__903667321>;
+  in var userProfiles : Map__334413012<Principal, UserProfile__315128327>;
+  in var videos : Map__334413012<Text, VideoMetadata__949337169>
+}, {
+  stable MAX_CHANNELS_PER_USER : Nat;
+  stable MAX_CHANNEL_NAME_LEN : Nat;
+  stable MAX_DESCRIPTION_LEN : Nat;
+  stable MAX_VIDEOS_PER_HOUR : Nat;
+  stable MAX_VIDEO_TITLE_LEN : Nat;
+  stable ONE_HOUR_NS : Int;
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__1054455867>
+    };
+  stable channelFollows :
+    {
+      var root : Node__46230540<Principal, [ChannelId__279479923]>;
+      var size : Nat__490723111
+    };
+  stable channelStripeConnections :
+    {
+      var root : Node__46230540<Text, ChannelStripeConnection__147939617>;
+      var size : Nat__490723111
+    };
+  stable channels :
+    {
+      var root : Node__46230540<Text, Channel__349342183>;
+      var size : Nat__490723111
+    };
+  stable comments :
+    {
+      var root : Node__46230540<Text, Comment__473346131>;
+      var size : Nat__490723111
+    };
+  stable var configuration : ?StripeConfiguration__96897619;
+  stable courses :
+    {
+      var root : Node__46230540<Text, Course__388460598>;
+      var size : Nat__490723111
+    };
+  stable donations :
+    {
+      var root : Node__46230540<Text, Donation__138140186>;
+      var size : Nat__490723111
+    };
+  stable membershipTiers :
+    {
+      var root : Node__46230540<Text, MembershipTier__893853907>;
+      var size : Nat__490723111
+    };
+  stable playlists :
+    {
+      var root : Node__46230540<Text, Playlist__961883281>;
+      var size : Nat__490723111
+    };
+  stable stripeAccounts :
+    {
+      var root : Node__46230540<Text, StripeAccount__991705083>;
+      var size : Nat__490723111
+    };
+  stable subscriptions :
+    {
+      var root : Node__46230540<Text, Subscription__231062474>;
+      var size : Nat__490723111
+    };
+  stable userProfiles :
+    {
+      var root : Node__46230540<Principal, UserProfile__491224006>;
+      var size : Nat__490723111
+    };
+  stable videoUploadLog :
+    {
+      var root : Node__46230540<Principal, [Time__900049286]>;
+      var size : Nat__490723111
+    };
+  stable videos :
+    {
+      var root : Node__46230540<Text, VideoMetadata__801886752>;
+      var size : Nat__490723111
+    }
+}) ;

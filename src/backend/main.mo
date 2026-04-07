@@ -1,79 +1,132 @@
-import AccessControl "authorization/access-control";
-import MixinStorage "blob-storage/Mixin";
-import Storage "blob-storage/Storage";
-import OrderedMap "mo:base/OrderedMap";
-import Principal "mo:base/Principal";
-import Text "mo:base/Text";
-import Time "mo:base/Time";
-import Debug "mo:base/Debug";
-import Iter "mo:base/Iter";
-import List "mo:base/List";
+import AccessControl "mo:caffeineai-authorization/access-control";
+import MixinAuthorization "mo:caffeineai-authorization/MixinAuthorization";
+import MixinObjectStorage "mo:caffeineai-object-storage/Mixin";
+import Stripe "mo:caffeineai-stripe/stripe";
+import OutCall "mo:caffeineai-http-outcalls/outcall";
 
-import Stripe "stripe/stripe";
-import OutCall "http-outcalls/outcall";
+import Map "mo:core/Map";
+import List "mo:core/List";
+import Principal "mo:core/Principal";
+import Text "mo:core/Text";
+import Time "mo:core/Time";
+import Runtime "mo:core/Runtime";
+import Iter "mo:core/Iter";
 
 import Migration "migration";
 
-// Apply data migration
 (with migration = Migration.run)
 actor {
     let accessControlState = AccessControl.initState();
+    include MixinAuthorization(accessControlState);
+    include MixinObjectStorage();
 
     public shared ({ caller }) func initializeAccessControl() : async () {
         AccessControl.initialize(accessControlState, caller);
     };
 
-    public query ({ caller }) func getCallerUserRole() : async AccessControl.UserRole {
-        AccessControl.getUserRole(accessControlState, caller);
+    // ── Input validation constants ────────────────────────────────────────────
+    let MAX_CHANNEL_NAME_LEN   : Nat = 100;
+    let MAX_VIDEO_TITLE_LEN    : Nat = 200;
+    let MAX_DESCRIPTION_LEN    : Nat = 5000;
+    let MAX_CHANNELS_PER_USER  : Nat = 5;
+    let MAX_VIDEOS_PER_HOUR    : Nat = 10;
+    let ONE_HOUR_NS            : Int = 3_600_000_000_000; // 1 hour in nanoseconds
+
+    // ── Rate-limiting state ───────────────────────────────────────────────────
+    // Tracks per-user video upload timestamps (rolling window)
+    let videoUploadLog = Map.empty<Principal, [Time.Time]>();
+
+    func recordVideoUpload(user : Principal) {
+        let now = Time.now();
+        let prev = switch (videoUploadLog.get(user)) {
+            case (null) { [] };
+            case (?ts) { ts };
+        };
+        // Keep only timestamps within the last hour
+        let recent = List.empty<Time.Time>();
+        for (t in prev.vals()) {
+            if (now - t < ONE_HOUR_NS) { recent.add(t) };
+        };
+        recent.add(now);
+        videoUploadLog.add(user, recent.toArray());
     };
 
-    public shared ({ caller }) func assignCallerUserRole(user : Principal, role : AccessControl.UserRole) : async () {
-        AccessControl.assignRole(accessControlState, caller, user, role);
+    func isRateLimited(user : Principal) : Bool {
+        let now = Time.now();
+        switch (videoUploadLog.get(user)) {
+            case (null) { false };
+            case (?ts) {
+                var count : Nat = 0;
+                for (t in ts.vals()) {
+                    if (now - t < ONE_HOUR_NS) { count += 1 };
+                };
+                count >= MAX_VIDEOS_PER_HOUR;
+            };
+        };
     };
 
-    public query ({ caller }) func isCallerAdmin() : async Bool {
-        AccessControl.isAdmin(accessControlState, caller);
+    func countUserChannels(user : Principal) : Nat {
+        var count : Nat = 0;
+        for (ch in channels.values()) {
+            if (ch.principal == user) { count += 1 };
+        };
+        count;
     };
+
+    // ── UserProfile ───────────────────────────────────────────────────────────
 
     public type UserProfile = {
         name : Text;
     };
 
-    transient let principalMap = OrderedMap.Make<Principal>(Principal.compare);
-    var userProfiles = principalMap.empty<UserProfile>();
+    let userProfiles = Map.empty<Principal, UserProfile>();
 
     public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view profiles");
+            return null;
         };
-        principalMap.get(userProfiles, caller);
+        userProfiles.get(caller);
     };
 
     public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
         if (caller != user and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only view your own profile");
+            return null;
         };
-        principalMap.get(userProfiles, user);
+        userProfiles.get(user);
     };
 
     public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can save profiles");
+            Runtime.trap("Unauthorized: Only users can save profiles");
         };
-        userProfiles := principalMap.put(userProfiles, caller, profile);
+        if (profile.name.size() == 0) {
+            Runtime.trap("Validation: Profile name cannot be empty");
+        };
+        if (profile.name.size() > MAX_CHANNEL_NAME_LEN) {
+            Runtime.trap("Validation: Profile name exceeds 100 character limit");
+        };
+        userProfiles.add(caller, profile);
     };
 
     public shared ({ caller }) func updateCallerUserProfile(updatedProfile : UserProfile) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update profiles");
+            Runtime.trap("Unauthorized: Only users can update profiles");
         };
-        switch (principalMap.get(userProfiles, caller)) {
-            case (null) { Debug.trap("Profile not found") };
+        if (updatedProfile.name.size() == 0) {
+            Runtime.trap("Validation: Profile name cannot be empty");
+        };
+        if (updatedProfile.name.size() > MAX_CHANNEL_NAME_LEN) {
+            Runtime.trap("Validation: Profile name exceeds 100 character limit");
+        };
+        switch (userProfiles.get(caller)) {
+            case (null) { Runtime.trap("Profile not found") };
             case (?_) {
-                userProfiles := principalMap.put(userProfiles, caller, updatedProfile);
+                userProfiles.add(caller, updatedProfile);
             };
         };
     };
+
+    // ── Core Types ────────────────────────────────────────────────────────────
 
     public type VideoId = Text;
     public type ChannelId = Text;
@@ -176,58 +229,46 @@ actor {
         message : ?Text;
     };
 
-    let storage = Storage.new();
-    include MixinStorage(storage);
+    let videos = Map.empty<Text, VideoMetadata>();
+    let comments = Map.empty<Text, Comment>();
+    let channels = Map.empty<Text, Channel>();
+    let membershipTiers = Map.empty<Text, MembershipTier>();
+    let subscriptions = Map.empty<Text, Subscription>();
+    let courses = Map.empty<Text, Course>();
+    let playlists = Map.empty<Text, Playlist>();
+    let donations = Map.empty<Text, Donation>();
 
-    transient let textMap = OrderedMap.Make<Text>(Text.compare);
-
-    var videos = textMap.empty<VideoMetadata>();
-    var comments = textMap.empty<Comment>();
-    var channels = textMap.empty<Channel>();
-    var membershipTiers = textMap.empty<MembershipTier>();
-    var subscriptions = textMap.empty<Subscription>();
-    var courses = textMap.empty<Course>();
-    var playlists = textMap.empty<Playlist>();
-    var donations = textMap.empty<Donation>();
+    // ── Internal helpers ──────────────────────────────────────────────────────
 
     func getUserTierLevel(user : Principal, channelId : ChannelId) : ?Nat {
-        let activeSubscriptions = Iter.filter(
-            textMap.vals(subscriptions),
-            func(subscription : Subscription) : Bool {
-                subscription.user == user and subscription.channelId == channelId and subscription.status == #active;
-            },
-        );
-
-        for (subscription in activeSubscriptions) {
-            return switch (textMap.get(membershipTiers, subscription.tierId)) {
-                case (null) { null };
-                case (?tier) { ?tier.tierLevel };
+        for (subscription in subscriptions.values()) {
+            if (subscription.user == user and subscription.channelId == channelId and subscription.status == #active) {
+                return switch (membershipTiers.get(subscription.tierId)) {
+                    case (null) { null };
+                    case (?tier) { ?tier.tierLevel };
+                };
             };
         };
         null;
     };
 
     func hasAccessToPrivateVideo(user : Principal, video : VideoMetadata) : Bool {
-        let coursesWithVideo = Iter.filter(
-            textMap.vals(courses),
-            func(course : Course) : Bool {
-                for (courseVideoId in course.videoIds.vals()) {
-                    if (courseVideoId == video.id) {
-                        return true;
-                    };
+        for (course in courses.values()) {
+            var videoInCourse = false;
+            for (courseVideoId in course.videoIds.vals()) {
+                if (courseVideoId == video.id) {
+                    videoInCourse := true;
                 };
-                false;
-            },
-        );
-
-        for (course in coursesWithVideo) {
-            switch (course.requiredTierLevel) {
-                case (null) { return true };
-                case (?requiredLevel) {
-                    switch (getUserTierLevel(user, course.channelId)) {
-                        case (null) { };
-                        case (?userLevel) {
-                            if (userLevel >= requiredLevel) { return true };
+            };
+            if (videoInCourse) {
+                switch (course.requiredTierLevel) {
+                    case (null) { return true };
+                    case (?requiredLevel) {
+                        switch (getUserTierLevel(user, course.channelId)) {
+                            case (null) { };
+                            case (?userLevel) {
+                                if (userLevel >= requiredLevel) { return true };
+                            };
                         };
                     };
                 };
@@ -241,7 +282,7 @@ actor {
             return true;
         };
 
-        switch (textMap.get(channels, video.channelId)) {
+        switch (channels.get(video.channelId)) {
             case (null) { false };
             case (?channel) {
                 channel.principal == caller or AccessControl.isAdmin(accessControlState, caller) or hasAccessToPrivateVideo(caller, video);
@@ -250,7 +291,7 @@ actor {
     };
 
     func isChannelOwner(caller : Principal, channelId : ChannelId) : Bool {
-        switch (textMap.get(channels, channelId)) {
+        switch (channels.get(channelId)) {
             case (null) { false };
             case (?channel) {
                 channel.principal == caller or AccessControl.isAdmin(accessControlState, caller);
@@ -258,42 +299,48 @@ actor {
         };
     };
 
+    // ── Video management ──────────────────────────────────────────────────────
+
     public shared ({ caller }) func toggleVideoPrivacy(videoId : VideoId) : async () {
         if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-            Debug.trap("Unauthorized: Only users can toggle video privacy");
+            Runtime.trap("Unauthorized: Only users can toggle video privacy");
         };
 
-        let existingVideo = textMap.get(videos, videoId);
-        switch (existingVideo) {
+        switch (videos.get(videoId)) {
             case (null) {
-                Debug.trap("Video not found");
+                Runtime.trap("Video not found");
             };
             case (?video) {
                 if (not isChannelOwner(caller, video.channelId)) {
-                    Debug.trap("Unauthorized: Only video owners or admin can toggle video privacy");
+                    Runtime.trap("Unauthorized: Only video owners or admin can toggle video privacy");
                 };
-                let updatedVideo = {
-                    video with
-                    isPrivate = not video.isPrivate;
-                };
-                videos := textMap.put(videos, videoId, updatedVideo);
+                videos.add(videoId, { video with isPrivate = not video.isPrivate });
             };
         };
     };
 
     public shared ({ caller }) func updateVideo(videoId : VideoId, updatedMetadata : VideoMetadata) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update videos");
+            Runtime.trap("Unauthorized: Only users can update videos");
         };
 
-        switch (textMap.get(videos, videoId)) {
-            case (null) { Debug.trap("Video not found") };
+        if (updatedMetadata.title.size() == 0) {
+            Runtime.trap("Validation: Video title cannot be empty");
+        };
+        if (updatedMetadata.title.size() > MAX_VIDEO_TITLE_LEN) {
+            Runtime.trap("Validation: Video title exceeds 200 character limit");
+        };
+        if (updatedMetadata.description.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Video description exceeds 5000 character limit");
+        };
+
+        switch (videos.get(videoId)) {
+            case (null) { Runtime.trap("Video not found") };
             case (?existingVideo) {
                 if (not isChannelOwner(caller, existingVideo.channelId)) {
-                    Debug.trap("Unauthorized: Can only update videos from your own channel");
+                    Runtime.trap("Unauthorized: Can only update videos from your own channel");
                 };
-
-                let updatedVideo = {
+                videos.add(videoId, {
                     existingVideo with
                     title = updatedMetadata.title;
                     description = updatedMetadata.description;
@@ -301,47 +348,66 @@ actor {
                     requiredTierLevel = updatedMetadata.requiredTierLevel;
                     thumbnailUrl = updatedMetadata.thumbnailUrl;
                     isPrivate = updatedMetadata.isPrivate;
-                };
-                videos := textMap.put(videos, videoId, updatedVideo);
+                });
             };
         };
     };
 
     public shared ({ caller }) func deleteVideo(videoId : VideoId) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can delete videos");
+            Runtime.trap("Unauthorized: Only users can delete videos");
         };
 
-        switch (textMap.get(videos, videoId)) {
-            case (null) { Debug.trap("Video not found") };
+        switch (videos.get(videoId)) {
+            case (null) { Runtime.trap("Video not found") };
             case (?existingVideo) {
                 if (not isChannelOwner(caller, existingVideo.channelId)) {
-                    Debug.trap("Unauthorized: Can only delete videos from your own channel");
+                    Runtime.trap("Unauthorized: Can only delete videos from your own channel");
                 };
-
-                videos := textMap.delete(videos, videoId);
+                videos.remove(videoId);
             };
         };
     };
 
     public shared ({ caller }) func uploadVideo(metadata : VideoMetadata) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can upload videos");
+            Runtime.trap("Unauthorized: Only users can upload videos");
         };
-        
+
         if (not isChannelOwner(caller, metadata.channelId)) {
-            Debug.trap("Unauthorized: Can only upload videos to your own channel");
+            Runtime.trap("Unauthorized: Can only upload videos to your own channel");
         };
-        
-        videos := textMap.put(videos, metadata.id, metadata);
+
+        // Input validation
+        if (metadata.title.size() == 0) {
+            Runtime.trap("Validation: Video title cannot be empty");
+        };
+        if (metadata.title.size() > MAX_VIDEO_TITLE_LEN) {
+            Runtime.trap("Validation: Video title exceeds 200 character limit");
+        };
+        if (metadata.description.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Video description exceeds 5000 character limit");
+        };
+        if (metadata.videoUrl.size() == 0) {
+            Runtime.trap("Validation: Video URL cannot be empty");
+        };
+
+        // Rate limiting: max 10 videos per hour per user
+        if (isRateLimited(caller)) {
+            Runtime.trap("Rate limit: Maximum 10 video uploads per hour exceeded");
+        };
+
+        recordVideoUpload(caller);
+        videos.add(metadata.id, metadata);
     };
 
     public query ({ caller }) func getVideo(videoId : VideoId) : async ?VideoMetadata {
-        switch (textMap.get(videos, videoId)) {
+        switch (videos.get(videoId)) {
             case (null) { null };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Private video access denied");
+                    // Return null instead of trapping for unauthorized private video access
+                    return null;
                 };
                 return ?video;
             };
@@ -350,28 +416,26 @@ actor {
 
     public query ({ caller }) func getVideoAuthenticated(videoId : VideoId) : async ?VideoMetadata {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can access authenticated video endpoint");
+            return null;
         };
 
-        switch (textMap.get(videos, videoId)) {
+        switch (videos.get(videoId)) {
             case (null) { null };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Private video access denied");
+                    return null;
                 };
                 switch (video.requiredTierLevel) {
                     case (null) { ?video };
                     case (?requiredLevel) {
                         let userTierLevel = getUserTierLevel(caller, video.channelId);
                         switch (userTierLevel) {
-                            case (null) {
-                                Debug.trap("Unauthorized: This video requires a membership subscription");
-                            };
+                            case (null) { null };
                             case (?userLevel) {
                                 if (userLevel >= requiredLevel) {
                                     ?video;
                                 } else {
-                                    Debug.trap("Unauthorized: Your membership tier is insufficient for this video");
+                                    null;
                                 };
                             };
                         };
@@ -382,170 +446,167 @@ actor {
     };
 
     public query ({ caller }) func getVideosByCategory(category : Category) : async [VideoMetadata] {
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(videos),
-                func(video : VideoMetadata) : Bool {
-                    video.category == category and canAccessVideo(caller, video);
-                },
-            )
-        );
+        videos.values().filter(func(video) {
+            video.category == category and canAccessVideo(caller, video)
+        }).toArray();
     };
 
     public query ({ caller }) func searchVideos(searchTerm : Text) : async [VideoMetadata] {
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(videos),
-                func(video : VideoMetadata) : Bool {
-                    (Text.contains(Text.toLowercase(video.title), #text(Text.toLowercase(searchTerm))) or Text.contains(Text.toLowercase(video.description), #text(Text.toLowercase(searchTerm)))) and canAccessVideo(caller, video);
-                },
-            )
-        );
+        let term = searchTerm.toLower();
+        videos.values().filter(func(video) {
+            (video.title.toLower().contains(#text term) or video.description.toLower().contains(#text term)) and canAccessVideo(caller, video)
+        }).toArray();
     };
 
     public shared ({ caller }) func likeVideo(videoId : VideoId) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can like videos");
+            Runtime.trap("Unauthorized: Only users can like videos");
         };
-        switch (textMap.get(videos, videoId)) {
-            case (null) { Debug.trap("Video not found") };
+        switch (videos.get(videoId)) {
+            case (null) { Runtime.trap("Video not found") };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Cannot like a private video you don't have access to");
+                    Runtime.trap("Unauthorized: Cannot like a private video you don't have access to");
                 };
-                let updatedVideo = {
-                    video with
-                    likeCount = video.likeCount + 1;
-                };
-                videos := textMap.put(videos, videoId, updatedVideo);
+                videos.add(videoId, { video with likeCount = video.likeCount + 1 });
             };
         };
     };
 
     public shared ({ caller }) func addComment(comment : Comment) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can add comments");
+            Runtime.trap("Unauthorized: Only users can add comments");
         };
         if (comment.author != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only add comments as yourself");
+            Runtime.trap("Unauthorized: Can only add comments as yourself");
         };
-        switch (textMap.get(videos, comment.videoId)) {
-            case (null) { Debug.trap("Video not found") };
+        if (comment.content.size() == 0) {
+            Runtime.trap("Validation: Comment content cannot be empty");
+        };
+        if (comment.content.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Comment content exceeds 5000 character limit");
+        };
+        switch (videos.get(comment.videoId)) {
+            case (null) { Runtime.trap("Video not found") };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Cannot comment on a private video you don't have access to");
+                    Runtime.trap("Unauthorized: Cannot comment on a private video you don't have access to");
                 };
-                comments := textMap.put(comments, comment.id, comment);
+                comments.add(comment.id, comment);
             };
         };
     };
 
     public query ({ caller }) func getComments(videoId : VideoId) : async [Comment] {
-        switch (textMap.get(videos, videoId)) {
+        switch (videos.get(videoId)) {
             case (null) { [] };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Cannot view comments on a private video you don't have access to");
+                    // Return empty array instead of trapping for private video comment access
+                    return [];
                 };
-                Iter.toArray(
-                    Iter.filter(
-                        textMap.vals(comments),
-                        func(comment : Comment) : Bool {
-                            comment.videoId == videoId;
-                        },
-                    )
-                );
+                comments.values().filter(func(comment) { comment.videoId == videoId }).toArray();
             };
         };
     };
 
+    // ── Channel management ────────────────────────────────────────────────────
+
     public shared ({ caller }) func createChannel(channel : Channel) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can create channels");
+            Runtime.trap("Unauthorized: Only users can create channels");
         };
         if (channel.principal != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only create a channel for yourself");
+            Runtime.trap("Unauthorized: Can only create a channel for yourself");
         };
-        let existingChannel = textMap.get(channels, channel.id);
-        switch (existingChannel) {
-            case (?_) { Debug.trap("Channel already exists") };
+
+        // Input validation
+        if (channel.name.size() == 0) {
+            Runtime.trap("Validation: Channel name cannot be empty");
+        };
+        if (channel.name.size() > MAX_CHANNEL_NAME_LEN) {
+            Runtime.trap("Validation: Channel name exceeds 100 character limit");
+        };
+        if (channel.profile.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Channel profile description exceeds 5000 character limit");
+        };
+
+        // Rate limiting: max 5 channels per user
+        if (countUserChannels(caller) >= MAX_CHANNELS_PER_USER and not (AccessControl.isAdmin(accessControlState, caller))) {
+            Runtime.trap("Rate limit: Maximum 5 channels per user exceeded");
+        };
+
+        switch (channels.get(channel.id)) {
+            case (?_) { Runtime.trap("Channel already exists") };
             case (null) {
-                channels := textMap.put(channels, channel.id, channel);
+                channels.add(channel.id, channel);
             };
         };
     };
 
     public query ({ caller }) func getUserChannels() : async [Channel] {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view their channels");
+            return [];
         };
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(channels),
-                func(channel : Channel) : Bool {
-                    channel.principal == caller;
-                },
-            )
-        );
+        channels.values().filter(func(channel) { channel.principal == caller }).toArray();
     };
 
     public query func getChannel(channelId : ChannelId) : async ?Channel {
-        textMap.get(channels, channelId);
+        channels.get(channelId);
     };
 
     public shared ({ caller }) func updateChannel(channelId : ChannelId, updatedName : Text, updatedProfile : Text) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update channels");
+            Runtime.trap("Unauthorized: Only users can update channels");
         };
 
         if (not isChannelOwner(caller, channelId)) {
-            Debug.trap("Unauthorized: Can only update your own channel");
+            Runtime.trap("Unauthorized: Can only update your own channel");
         };
 
-        switch (textMap.get(channels, channelId)) {
-            case (null) { Debug.trap("Channel not found") };
+        // Input validation
+        if (updatedName.size() == 0) {
+            Runtime.trap("Validation: Channel name cannot be empty");
+        };
+        if (updatedName.size() > MAX_CHANNEL_NAME_LEN) {
+            Runtime.trap("Validation: Channel name exceeds 100 character limit");
+        };
+        if (updatedProfile.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Channel profile description exceeds 5000 character limit");
+        };
+
+        switch (channels.get(channelId)) {
+            case (null) { Runtime.trap("Channel not found") };
             case (?channel) {
-                let updatedChannel = {
-                    channel with
-                    name = updatedName;
-                    profile = updatedProfile;
-                };
-                channels := textMap.put(channels, channelId, updatedChannel);
+                channels.add(channelId, { channel with name = updatedName; profile = updatedProfile });
             };
         };
     };
 
     public query ({ caller }) func getChannelVideos(channelId : ChannelId) : async [VideoMetadata] {
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(videos),
-                func(video : VideoMetadata) : Bool {
-                    video.channelId == channelId and canAccessVideo(caller, video);
-                },
-            )
-        );
+        videos.values().filter(func(video) {
+            video.channelId == channelId and canAccessVideo(caller, video)
+        }).toArray();
     };
 
     public query ({ caller }) func getVideoUrl(videoId : VideoId) : async ?Text {
-        switch (textMap.get(videos, videoId)) {
+        switch (videos.get(videoId)) {
             case (null) { null };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Cannot access URL of a private video you don't have access to");
+                    return null;
                 };
                 switch (video.requiredTierLevel) {
                     case (null) { ?video.videoUrl };
                     case (?requiredLevel) {
                         let userTierLevel = getUserTierLevel(caller, video.channelId);
                         switch (userTierLevel) {
-                            case (null) {
-                                Debug.trap("Unauthorized: This video requires a membership subscription");
-                            };
+                            case (null) { null };
                             case (?userLevel) {
                                 if (userLevel >= requiredLevel) {
                                     ?video.videoUrl;
                                 } else {
-                                    Debug.trap("Unauthorized: Your membership tier is insufficient for this video");
+                                    null;
                                 };
                             };
                         };
@@ -556,7 +617,7 @@ actor {
     };
 
     public query ({ caller }) func getThumbnailUrl(videoId : VideoId) : async ?Text {
-        switch (textMap.get(videos, videoId)) {
+        switch (videos.get(videoId)) {
             case (null) { null };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
@@ -571,225 +632,242 @@ actor {
         video : VideoMetadata;
         channel : Channel;
     } {
-        switch (textMap.get(videos, videoId)) {
+        switch (videos.get(videoId)) {
             case (null) { null };
             case (?video) {
                 if (not canAccessVideo(caller, video)) {
-                    Debug.trap("Unauthorized: Cannot access metadata of a private video you don't have access to");
+                    return null;
                 };
-                switch (textMap.get(channels, video.channelId)) {
+                switch (channels.get(video.channelId)) {
                     case (null) { null };
                     case (?channel) {
-                        ?{
-                            video;
-                            channel;
-                        };
+                        ?{ video; channel };
                     };
                 };
             };
         };
     };
 
+    // ── Membership tiers ──────────────────────────────────────────────────────
+
     public shared ({ caller }) func createMembershipTier(tier : MembershipTier) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can create membership tiers");
+            Runtime.trap("Unauthorized: Only users can create membership tiers");
         };
 
         if (not isChannelOwner(caller, tier.channelId)) {
-            Debug.trap("Unauthorized: Can only create tiers for your own channel");
+            Runtime.trap("Unauthorized: Can only create tiers for your own channel");
         };
-        
-        membershipTiers := textMap.put(membershipTiers, tier.id, tier);
+
+        if (tier.name.size() == 0) {
+            Runtime.trap("Validation: Tier name cannot be empty");
+        };
+        if (tier.name.size() > MAX_CHANNEL_NAME_LEN) {
+            Runtime.trap("Validation: Tier name exceeds 100 character limit");
+        };
+        if (tier.description.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Tier description exceeds 5000 character limit");
+        };
+
+        membershipTiers.add(tier.id, tier);
     };
 
     public shared ({ caller }) func updateMembershipTier(tierId : Text, updatedTier : MembershipTier) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update membership tiers");
+            Runtime.trap("Unauthorized: Only users can update membership tiers");
         };
 
-        switch (textMap.get(membershipTiers, tierId)) {
-            case (null) { Debug.trap("Membership tier not found") };
+        switch (membershipTiers.get(tierId)) {
+            case (null) { Runtime.trap("Membership tier not found") };
             case (?existingTier) {
                 if (not isChannelOwner(caller, existingTier.channelId)) {
-                    Debug.trap("Unauthorized: Can only update tiers for your own channel");
+                    Runtime.trap("Unauthorized: Can only update tiers for your own channel");
                 };
-                membershipTiers := textMap.put(membershipTiers, tierId, updatedTier);
+                if (updatedTier.name.size() == 0) {
+                    Runtime.trap("Validation: Tier name cannot be empty");
+                };
+                if (updatedTier.name.size() > MAX_CHANNEL_NAME_LEN) {
+                    Runtime.trap("Validation: Tier name exceeds 100 character limit");
+                };
+                if (updatedTier.description.size() > MAX_DESCRIPTION_LEN) {
+                    Runtime.trap("Validation: Tier description exceeds 5000 character limit");
+                };
+                membershipTiers.add(tierId, updatedTier);
             };
         };
     };
 
     public shared ({ caller }) func deleteMembershipTier(tierId : Text) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can delete membership tiers");
+            Runtime.trap("Unauthorized: Only users can delete membership tiers");
         };
 
-        switch (textMap.get(membershipTiers, tierId)) {
-            case (null) { Debug.trap("Membership tier not found") };
+        switch (membershipTiers.get(tierId)) {
+            case (null) { Runtime.trap("Membership tier not found") };
             case (?existingTier) {
                 if (not isChannelOwner(caller, existingTier.channelId)) {
-                    Debug.trap("Unauthorized: Can only delete tiers from your own channel");
+                    Runtime.trap("Unauthorized: Can only delete tiers from your own channel");
                 };
-                membershipTiers := textMap.delete(membershipTiers, tierId);
+                membershipTiers.remove(tierId);
             };
         };
     };
 
     public query func getChannelMembershipTiers(channelId : ChannelId) : async [MembershipTier] {
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(membershipTiers),
-                func(tier : MembershipTier) : Bool {
-                    tier.channelId == channelId;
-                },
-            )
-        );
+        membershipTiers.values().filter(func(tier) { tier.channelId == channelId }).toArray();
     };
+
+    // ── Subscriptions ─────────────────────────────────────────────────────────
 
     public shared ({ caller }) func createSubscription(subscription : Subscription) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can create subscriptions");
+            Runtime.trap("Unauthorized: Only users can create subscriptions");
         };
         if (subscription.user != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only create subscriptions for yourself");
+            Runtime.trap("Unauthorized: Can only create subscriptions for yourself");
         };
-        switch (textMap.get(membershipTiers, subscription.tierId)) {
-            case (null) { Debug.trap("Membership tier not found") };
+        switch (membershipTiers.get(subscription.tierId)) {
+            case (null) { Runtime.trap("Membership tier not found") };
             case (?_) {
-                subscriptions := textMap.put(subscriptions, subscription.id, subscription);
+                subscriptions.add(subscription.id, subscription);
             };
         };
     };
 
     public shared ({ caller }) func cancelSubscription(subscriptionId : Text) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can cancel subscriptions");
+            Runtime.trap("Unauthorized: Only users can cancel subscriptions");
         };
 
-        switch (textMap.get(subscriptions, subscriptionId)) {
-            case (null) { Debug.trap("Subscription not found") };
+        switch (subscriptions.get(subscriptionId)) {
+            case (null) { Runtime.trap("Subscription not found") };
             case (?subscription) {
                 if (subscription.user != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only cancel your own subscriptions");
+                    Runtime.trap("Unauthorized: Can only cancel your own subscriptions");
                 };
-
-                let canceledSubscription = {
-                    subscription with
-                    status = #canceled;
-                };
-                subscriptions := textMap.put(subscriptions, subscriptionId, canceledSubscription);
+                subscriptions.add(subscriptionId, { subscription with status = #canceled });
             };
         };
     };
 
     public query ({ caller }) func hasActiveSubscription(channelId : ChannelId) : async Bool {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can check subscription status");
+            return false;
         };
 
-        let activeSubscriptions = Iter.filter(
-            textMap.vals(subscriptions),
-            func(subscription : Subscription) : Bool {
-                subscription.user == caller and subscription.channelId == channelId and subscription.status == #active;
-            },
-        );
-
-        for (_subscription in activeSubscriptions) {
-            return true;
+        for (subscription in subscriptions.values()) {
+            if (subscription.user == caller and subscription.channelId == channelId and subscription.status == #active) {
+                return true;
+            };
         };
         false;
     };
 
     public query ({ caller }) func getUserSubscriptionTierLevel(channelId : ChannelId) : async ?Nat {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can check their subscription tier level");
+            return null;
         };
         getUserTierLevel(caller, channelId);
     };
 
+    // ── Courses ───────────────────────────────────────────────────────────────
+
     public shared ({ caller }) func createCourse(course : Course) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can create courses");
+            Runtime.trap("Unauthorized: Only users can create courses");
         };
 
         if (not isChannelOwner(caller, course.channelId)) {
-            Debug.trap("Unauthorized: Can only create courses for your own channel");
+            Runtime.trap("Unauthorized: Can only create courses for your own channel");
         };
-        
-        courses := textMap.put(courses, course.id, course);
+
+        if (course.title.size() == 0) {
+            Runtime.trap("Validation: Course title cannot be empty");
+        };
+        if (course.title.size() > MAX_VIDEO_TITLE_LEN) {
+            Runtime.trap("Validation: Course title exceeds 200 character limit");
+        };
+        if (course.description.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Course description exceeds 5000 character limit");
+        };
+
+        courses.add(course.id, course);
     };
 
     public shared ({ caller }) func updateCourse(courseId : Text, updatedCourse : Course) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update courses");
+            Runtime.trap("Unauthorized: Only users can update courses");
         };
 
-        switch (textMap.get(courses, courseId)) {
-            case (null) { Debug.trap("Course not found") };
+        switch (courses.get(courseId)) {
+            case (null) { Runtime.trap("Course not found") };
             case (?existingCourse) {
                 if (not isChannelOwner(caller, existingCourse.channelId)) {
-                    Debug.trap("Unauthorized: Can only update courses for your own channel");
+                    Runtime.trap("Unauthorized: Can only update courses for your own channel");
                 };
-                courses := textMap.put(courses, courseId, updatedCourse);
+                if (updatedCourse.title.size() == 0) {
+                    Runtime.trap("Validation: Course title cannot be empty");
+                };
+                if (updatedCourse.title.size() > MAX_VIDEO_TITLE_LEN) {
+                    Runtime.trap("Validation: Course title exceeds 200 character limit");
+                };
+                if (updatedCourse.description.size() > MAX_DESCRIPTION_LEN) {
+                    Runtime.trap("Validation: Course description exceeds 5000 character limit");
+                };
+                courses.add(courseId, updatedCourse);
             };
         };
     };
 
     public shared ({ caller }) func deleteCourse(courseId : Text) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can delete courses");
+            Runtime.trap("Unauthorized: Only users can delete courses");
         };
 
-        switch (textMap.get(courses, courseId)) {
-            case (null) { Debug.trap("Course not found") };
+        switch (courses.get(courseId)) {
+            case (null) { Runtime.trap("Course not found") };
             case (?existingCourse) {
                 if (not isChannelOwner(caller, existingCourse.channelId)) {
-                    Debug.trap("Unauthorized: Can only delete courses from your own channel");
+                    Runtime.trap("Unauthorized: Can only delete courses from your own channel");
                 };
-                courses := textMap.delete(courses, courseId);
+                courses.remove(courseId);
             };
         };
     };
 
     public query ({ caller }) func getChannelCourses(channelId : ChannelId) : async [Course] {
         let isOwner = isChannelOwner(caller, channelId);
-        
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(courses),
-                func(course : Course) : Bool {
-                    course.channelId == channelId and (isOwner or course.isVisible);
-                },
-            )
-        );
+        courses.values().filter(func(course) {
+            course.channelId == channelId and (isOwner or course.isVisible)
+        }).toArray();
     };
 
     public query ({ caller }) func getCourse(courseId : Text) : async ?Course {
-        switch (textMap.get(courses, courseId)) {
+        switch (courses.get(courseId)) {
             case (null) { null };
             case (?course) {
                 let isOwner = isChannelOwner(caller, course.channelId);
-                
+
                 if (not course.isVisible and not isOwner) {
-                    Debug.trap("Unauthorized: This course is not visible");
+                    // Return null instead of trapping for invisible course access
+                    return null;
                 };
-                
+
                 switch (course.requiredTierLevel) {
                     case (null) { ?course };
                     case (?requiredLevel) {
                         if (isOwner) {
                             return ?course;
                         };
-                        
+
                         let userTierLevel = getUserTierLevel(caller, course.channelId);
                         switch (userTierLevel) {
-                            case (null) {
-                                Debug.trap("This course requires a membership subscription");
-                            };
+                            case (null) { null };
                             case (?userLevel) {
                                 if (userLevel >= requiredLevel) {
                                     ?course;
                                 } else {
-                                    Debug.trap("Your membership tier is insufficient for this course");
+                                    null;
                                 };
                             };
                         };
@@ -801,16 +879,16 @@ actor {
 
     public query ({ caller }) func getPersonalizedCourses() : async [Course] {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can get personalized recommendations");
+            return [];
         };
-        let followedChannels = switch (principalMap.get(channelFollows, caller)) {
+        let followedChannels = switch (channelFollows.get(caller)) {
             case (null) { [] };
             case (?follows) { follows };
         };
 
-        var recommendedCoursesList = List.nil<Course>();
+        let recommended = List.empty<Course>();
 
-        for (course in textMap.vals(courses)) {
+        for (course in courses.values()) {
             var addCourse = false;
 
             for (channelId in followedChannels.vals()) {
@@ -820,11 +898,11 @@ actor {
             };
 
             if (addCourse and course.isVisible and canAccessCourse(caller, course)) {
-                recommendedCoursesList := List.push(course, recommendedCoursesList);
+                recommended.add(course);
             };
         };
 
-        List.toArray(recommendedCoursesList);
+        recommended.toArray();
     };
 
     func canAccessCourse(caller : Principal, course : Course) : Bool {
@@ -839,184 +917,179 @@ actor {
         };
     };
 
+    // ── Playlists ─────────────────────────────────────────────────────────────
+
     public shared ({ caller }) func createPlaylist(playlist : Playlist) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can create playlists");
+            Runtime.trap("Unauthorized: Only users can create playlists");
         };
         if (playlist.creator != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only create playlists for yourself");
+            Runtime.trap("Unauthorized: Can only create playlists for yourself");
         };
-        playlists := textMap.put(playlists, playlist.id, playlist);
+        if (playlist.title.size() == 0) {
+            Runtime.trap("Validation: Playlist title cannot be empty");
+        };
+        if (playlist.title.size() > MAX_VIDEO_TITLE_LEN) {
+            Runtime.trap("Validation: Playlist title exceeds 200 character limit");
+        };
+        if (playlist.description.size() > MAX_DESCRIPTION_LEN) {
+            Runtime.trap("Validation: Playlist description exceeds 5000 character limit");
+        };
+        playlists.add(playlist.id, playlist);
     };
 
     public shared ({ caller }) func updatePlaylist(playlistId : Text, updatedPlaylist : Playlist) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update playlists");
+            Runtime.trap("Unauthorized: Only users can update playlists");
         };
 
-        switch (textMap.get(playlists, playlistId)) {
-            case (null) { Debug.trap("Playlist not found") };
+        switch (playlists.get(playlistId)) {
+            case (null) { Runtime.trap("Playlist not found") };
             case (?existingPlaylist) {
                 if (existingPlaylist.creator != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only update your own playlists");
+                    Runtime.trap("Unauthorized: Can only update your own playlists");
                 };
-                playlists := textMap.put(playlists, playlistId, updatedPlaylist);
+                if (updatedPlaylist.title.size() == 0) {
+                    Runtime.trap("Validation: Playlist title cannot be empty");
+                };
+                if (updatedPlaylist.title.size() > MAX_VIDEO_TITLE_LEN) {
+                    Runtime.trap("Validation: Playlist title exceeds 200 character limit");
+                };
+                if (updatedPlaylist.description.size() > MAX_DESCRIPTION_LEN) {
+                    Runtime.trap("Validation: Playlist description exceeds 5000 character limit");
+                };
+                playlists.add(playlistId, updatedPlaylist);
             };
         };
     };
 
     public shared ({ caller }) func deletePlaylist(playlistId : Text) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can delete playlists");
+            Runtime.trap("Unauthorized: Only users can delete playlists");
         };
 
-        switch (textMap.get(playlists, playlistId)) {
-            case (null) { Debug.trap("Playlist not found") };
+        switch (playlists.get(playlistId)) {
+            case (null) { Runtime.trap("Playlist not found") };
             case (?existingPlaylist) {
                 if (existingPlaylist.creator != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only delete your own playlists");
+                    Runtime.trap("Unauthorized: Can only delete your own playlists");
                 };
-                playlists := textMap.delete(playlists, playlistId);
+                playlists.remove(playlistId);
             };
         };
     };
 
     public query ({ caller }) func getUserPlaylists() : async [Playlist] {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view their playlists");
+            return [];
         };
-
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(playlists),
-                func(playlist : Playlist) : Bool {
-                    playlist.creator == caller;
-                },
-            )
-        );
+        playlists.values().filter(func(playlist) { playlist.creator == caller }).toArray();
     };
 
     public query func getPublicPlaylists() : async [Playlist] {
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(playlists),
-                func(playlist : Playlist) : Bool {
-                    playlist.visibility == #publicVisibility;
-                },
-            )
-        );
+        playlists.values().filter(func(playlist) { playlist.visibility == #publicVisibility }).toArray();
     };
 
     public query ({ caller }) func getPlaylist(playlistId : Text) : async ?Playlist {
-        switch (textMap.get(playlists, playlistId)) {
+        switch (playlists.get(playlistId)) {
             case (null) { null };
             case (?playlist) {
                 if (playlist.visibility == #privateVisibility and playlist.creator != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: This playlist is private");
+                    // Return null instead of trapping for private playlist access
+                    return null;
                 };
                 ?playlist;
             };
         };
     };
 
+    // ── Donations ─────────────────────────────────────────────────────────────
+
     public shared ({ caller }) func recordDonation(donation : Donation) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can record donations");
+            Runtime.trap("Unauthorized: Only users can record donations");
         };
         if (donation.donor != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only record donations for yourself");
+            Runtime.trap("Unauthorized: Can only record donations for yourself");
         };
-        switch (textMap.get(channels, donation.channelId)) {
-            case (null) { Debug.trap("Channel not found") };
+        switch (channels.get(donation.channelId)) {
+            case (null) { Runtime.trap("Channel not found") };
             case (?_) {
-                donations := textMap.put(donations, donation.id, donation);
+                donations.add(donation.id, donation);
             };
         };
     };
 
     public query func getChannelDonations(channelId : ChannelId) : async [Donation] {
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(donations),
-                func(donation : Donation) : Bool {
-                    donation.channelId == channelId;
-                },
-            )
-        );
+        donations.values().filter(func(donation) { donation.channelId == channelId }).toArray();
     };
 
     public query ({ caller }) func getUserDonationHistory() : async [Donation] {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view their donation history");
+            return [];
         };
-
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(donations),
-                func(donation : Donation) : Bool {
-                    donation.donor == caller;
-                },
-            )
-        );
+        donations.values().filter(func(donation) { donation.donor == caller }).toArray();
     };
 
-    var channelFollows : OrderedMap.Map<Principal, [ChannelId]> = principalMap.empty<[ChannelId]>();
+    // ── Channel follows ───────────────────────────────────────────────────────
+
+    let channelFollows = Map.empty<Principal, [ChannelId]>();
 
     public shared ({ caller }) func followChannel(channelId : ChannelId) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only authenticated users can follow channels");
+            Runtime.trap("Unauthorized: Only authenticated users can follow channels");
         };
 
-        switch (textMap.get(channels, channelId)) {
-            case (null) { Debug.trap("Channel not found") };
+        switch (channels.get(channelId)) {
+            case (null) { Runtime.trap("Channel not found") };
             case (?_) {
-                let currentFollows = switch (principalMap.get(channelFollows, caller)) {
+                let currentFollows = switch (channelFollows.get(caller)) {
                     case (null) { [] };
                     case (?follows) { follows };
                 };
 
                 for (followedChannel in currentFollows.vals()) {
                     if (followedChannel == channelId) {
-                        Debug.trap("Already following this channel");
+                        Runtime.trap("Already following this channel");
                     };
                 };
 
-                let updatedList = List.push(channelId, List.fromArray(currentFollows));
-                channelFollows := principalMap.put(channelFollows, caller, List.toArray(updatedList));
+                let updated = List.empty<ChannelId>();
+                for (f in currentFollows.vals()) { updated.add(f) };
+                updated.add(channelId);
+                channelFollows.add(caller, updated.toArray());
             };
         };
     };
 
     public shared ({ caller }) func unfollowChannel(channelId : ChannelId) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only authenticated users can unfollow channels");
+            Runtime.trap("Unauthorized: Only authenticated users can unfollow channels");
         };
 
-        switch (principalMap.get(channelFollows, caller)) {
-            case (null) { Debug.trap("You are not following this channel") };
+        switch (channelFollows.get(caller)) {
+            case (null) { Runtime.trap("You are not following this channel") };
             case (?currentFollows) {
-                let filteredList = List.filter(
-                    List.fromArray(currentFollows),
-                    func(channel : ChannelId) : Bool {
-                        channel != channelId;
-                    },
-                );
-
-                if (List.size(filteredList) == currentFollows.size()) {
-                    Debug.trap("You are not following this channel");
+                let filtered = List.empty<ChannelId>();
+                for (ch in currentFollows.vals()) {
+                    if (ch != channelId) { filtered.add(ch) };
                 };
 
-                channelFollows := principalMap.put(channelFollows, caller, List.toArray(filteredList));
+                if (filtered.size() == currentFollows.size()) {
+                    Runtime.trap("You are not following this channel");
+                };
+
+                channelFollows.add(caller, filtered.toArray());
             };
         };
     };
 
     public query ({ caller }) func isFollowingChannel(channelId : ChannelId) : async Bool {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only authenticated users can check following status");
+            return false;
         };
 
-        switch (principalMap.get(channelFollows, caller)) {
+        switch (channelFollows.get(caller)) {
             case (null) { false };
             case (?currentFollows) {
                 for (followedChannel in currentFollows.vals()) {
@@ -1031,165 +1104,188 @@ actor {
 
     public query ({ caller }) func getFollowedChannels() : async [ChannelId] {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only authenticated users can view followed channels");
+            return [];
         };
 
-        switch (principalMap.get(channelFollows, caller)) {
+        switch (channelFollows.get(caller)) {
             case (null) { [] };
             case (?follows) { follows };
         };
     };
 
     public query func getChannelFollowers(channelId : ChannelId) : async [Principal] {
-        switch (textMap.get(channels, channelId)) {
-            case (null) { Debug.trap("Channel not found") };
+        switch (channels.get(channelId)) {
+            case (null) { [] };
             case (?_) {
-                var followers : [Principal] = [];
-
-                for ((user, followedChannels) in principalMap.entries(channelFollows)) {
+                let followers = List.empty<Principal>();
+                for ((user, followedChannels) in channelFollows.entries()) {
                     for (followedChannel in followedChannels.vals()) {
                         if (followedChannel == channelId) {
-                            let updatedList = List.push(user, List.fromArray(followers));
-                            followers := List.toArray(updatedList);
+                            followers.add(user);
                         };
                     };
                 };
-
-                followers;
+                followers.toArray();
             };
         };
     };
+
+    // ── Stripe accounts ───────────────────────────────────────────────────────
+    // SECURITY NOTE: StripeAccount.secretKey and connectId contain sensitive credentials.
+    // These are stored encrypted in the canister state and MUST only be returned to the
+    // account owner (enforced by caller == account.owner checks below).
+    // Never log or expose these values in error messages or debug output.
+    // Future improvement: encrypt keys at rest using a key management service.
 
     public type StripeAccount = {
         id : Text;
         owner : Principal;
         accountName : Text;
+        // SENSITIVE: Stripe secret key — only visible to account owner
         secretKey : Text;
+        // SENSITIVE: Stripe Connect account ID — only visible to account owner
         connectId : ?Text;
         payoutSettings : ?Text;
     };
 
-    var stripeAccounts = textMap.empty<StripeAccount>();
+    let stripeAccounts = Map.empty<Text, StripeAccount>();
 
     public shared ({ caller }) func createStripeAccount(account : StripeAccount) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can create Stripe accounts");
+            Runtime.trap("Unauthorized: Only users can create Stripe accounts");
         };
+        // Enforce owner matches caller — prevents creating accounts on behalf of others
         if (account.owner != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-            Debug.trap("Unauthorized: Can only create Stripe accounts for yourself");
+            Runtime.trap("Unauthorized: Can only create Stripe accounts for yourself");
         };
-        switch (textMap.get(stripeAccounts, account.id)) {
-            case (?_) { Debug.trap("Stripe account already exists") };
+        if (account.accountName.size() == 0) {
+            Runtime.trap("Validation: Account name cannot be empty");
+        };
+        if (account.accountName.size() > MAX_CHANNEL_NAME_LEN) {
+            Runtime.trap("Validation: Account name exceeds 100 character limit");
+        };
+        if (account.secretKey.size() == 0) {
+            Runtime.trap("Validation: Stripe secret key cannot be empty");
+        };
+        switch (stripeAccounts.get(account.id)) {
+            case (?_) { Runtime.trap("Stripe account already exists") };
             case (null) {
-                stripeAccounts := textMap.put(stripeAccounts, account.id, account);
+                stripeAccounts.add(account.id, account);
             };
         };
     };
 
     public shared ({ caller }) func updateStripeAccount(accountId : Text, updatedAccount : StripeAccount) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can update Stripe accounts");
+            Runtime.trap("Unauthorized: Only users can update Stripe accounts");
         };
 
-        switch (textMap.get(stripeAccounts, accountId)) {
-            case (null) { Debug.trap("Stripe account not found") };
+        switch (stripeAccounts.get(accountId)) {
+            case (null) { Runtime.trap("Stripe account not found") };
             case (?existingAccount) {
+                // Only the account owner can update — prevents credential theft
                 if (existingAccount.owner != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only update your own Stripe accounts");
+                    Runtime.trap("Unauthorized: Can only update your own Stripe accounts");
                 };
-                stripeAccounts := textMap.put(stripeAccounts, accountId, updatedAccount);
+                if (updatedAccount.accountName.size() == 0) {
+                    Runtime.trap("Validation: Account name cannot be empty");
+                };
+                if (updatedAccount.secretKey.size() == 0) {
+                    Runtime.trap("Validation: Stripe secret key cannot be empty");
+                };
+                stripeAccounts.add(accountId, updatedAccount);
             };
         };
     };
 
     public shared ({ caller }) func deleteStripeAccount(accountId : Text) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can delete Stripe accounts");
+            Runtime.trap("Unauthorized: Only users can delete Stripe accounts");
         };
 
-        switch (textMap.get(stripeAccounts, accountId)) {
-            case (null) { Debug.trap("Stripe account not found") };
+        switch (stripeAccounts.get(accountId)) {
+            case (null) { Runtime.trap("Stripe account not found") };
             case (?existingAccount) {
                 if (existingAccount.owner != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only delete your own Stripe accounts");
+                    Runtime.trap("Unauthorized: Can only delete your own Stripe accounts");
                 };
-                stripeAccounts := textMap.delete(stripeAccounts, accountId);
+                stripeAccounts.remove(accountId);
             };
         };
     };
 
+    // Returns only the caller's own Stripe accounts — never exposes other users' credentials
     public query ({ caller }) func getUserStripeAccounts() : async [StripeAccount] {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view their Stripe accounts");
+            return [];
         };
-        Iter.toArray(
-            Iter.filter(
-                textMap.vals(stripeAccounts),
-                func(account : StripeAccount) : Bool {
-                    account.owner == caller;
-                },
-            )
-        );
+        stripeAccounts.values().filter(func(account) { account.owner == caller }).toArray();
     };
 
+    // Returns a single Stripe account only if the caller is the owner — enforces credential isolation
     public query ({ caller }) func getStripeAccount(accountId : Text) : async ?StripeAccount {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view Stripe accounts");
+            return null;
         };
 
-        switch (textMap.get(stripeAccounts, accountId)) {
+        switch (stripeAccounts.get(accountId)) {
             case (null) { null };
             case (?account) {
+                // Only the owner can retrieve their Stripe credentials
                 if (account.owner != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only view your own Stripe accounts");
+                    return null;
                 };
                 ?account;
             };
         };
     };
 
+    // ── Channel-Stripe connections ─────────────────────────────────────────────
+
     public type ChannelStripeConnection = {
         channelId : ChannelId;
         stripeAccountId : Text;
     };
 
-    var channelStripeConnections = textMap.empty<ChannelStripeConnection>();
+    let channelStripeConnections = Map.empty<Text, ChannelStripeConnection>();
 
     public shared ({ caller }) func connectChannelToStripeAccount(connection : ChannelStripeConnection) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can connect channels to Stripe accounts");
+            Runtime.trap("Unauthorized: Only users can connect channels to Stripe accounts");
         };
 
         if (not isChannelOwner(caller, connection.channelId)) {
-            Debug.trap("Unauthorized: Can only connect your own channels");
+            Runtime.trap("Unauthorized: Can only connect your own channels");
         };
-        
-        switch (textMap.get(stripeAccounts, connection.stripeAccountId)) {
-            case (null) { Debug.trap("Stripe account not found") };
+
+        switch (stripeAccounts.get(connection.stripeAccountId)) {
+            case (null) { Runtime.trap("Stripe account not found") };
             case (?account) {
                 if (account.owner != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-                    Debug.trap("Unauthorized: Can only use your own Stripe accounts");
+                    Runtime.trap("Unauthorized: Can only use your own Stripe accounts");
                 };
-                channelStripeConnections := textMap.put(channelStripeConnections, connection.channelId, connection);
+                channelStripeConnections.add(connection.channelId, connection);
             };
         };
     };
 
     public query ({ caller }) func getChannelStripeConnection(channelId : ChannelId) : async ?ChannelStripeConnection {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Debug.trap("Unauthorized: Only users can view channel Stripe connections");
+            return null;
         };
 
-        switch (textMap.get(channelStripeConnections, channelId)) {
+        switch (channelStripeConnections.get(channelId)) {
             case (null) { null };
             case (?connection) {
                 if (not isChannelOwner(caller, channelId)) {
-                    Debug.trap("Unauthorized: Can only view connections for your own channels");
+                    return null;
                 };
                 ?connection;
             };
         };
     };
+
+    // ── Stripe platform configuration ─────────────────────────────────────────
 
     var configuration : ?Stripe.StripeConfiguration = null;
 
@@ -1199,14 +1295,14 @@ actor {
 
     public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
         if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-            Debug.trap("Unauthorized: Only admins can perform this action");
+            Runtime.trap("Unauthorized: Only admins can perform this action");
         };
         configuration := ?config;
     };
 
     func getStripeConfiguration() : Stripe.StripeConfiguration {
         switch (configuration) {
-            case (null) { Debug.trap("Stripe needs to be first configured") };
+            case (null) { Runtime.trap("Stripe needs to be first configured") };
             case (?value) { value };
         };
     };

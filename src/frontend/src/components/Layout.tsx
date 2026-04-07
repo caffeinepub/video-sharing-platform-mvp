@@ -1,8 +1,8 @@
-import { Outlet } from '@tanstack/react-router';
-import Header from './Header';
-import Footer from './Footer';
-import { useAuth } from '../contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Outlet } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import Footer from "./Footer";
+import Header from "./Header";
 
 export default function Layout() {
   const { isInitializing } = useAuth();

@@ -1,9 +1,16 @@
-import { Link } from '@tanstack/react-router';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { PlayCircle, Lock, DollarSign } from 'lucide-react';
-import type { Course } from '../backend';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Link } from "@tanstack/react-router";
+import { DollarSign, Lock, PlayCircle } from "lucide-react";
+import type { Course } from "../backend";
 
 interface CourseCardProps {
   course: Course;
@@ -12,8 +19,10 @@ interface CourseCardProps {
 
 export default function CourseCard({ course, onSubscribe }: CourseCardProps) {
   const videoCount = course.videoIds.length;
-  const hasTierRequirement = course.requiredTierLevel !== undefined && course.requiredTierLevel !== null;
-  const hasPriceRequirement = course.priceUsd !== undefined && course.priceUsd !== null;
+  const hasTierRequirement =
+    course.requiredTierLevel !== undefined && course.requiredTierLevel !== null;
+  const hasPriceRequirement =
+    course.priceUsd !== undefined && course.priceUsd !== null;
   const isFree = !hasTierRequirement && !hasPriceRequirement;
 
   return (
@@ -29,8 +38,7 @@ export default function CourseCard({ course, onSubscribe }: CourseCardProps) {
           )}
           {hasPriceRequirement && (
             <Badge variant="secondary" className="shrink-0">
-              <DollarSign className="h-3 w-3 mr-1" />
-              ${Number(course.priceUsd)}
+              <DollarSign className="h-3 w-3 mr-1" />${Number(course.priceUsd)}
             </Badge>
           )}
         </div>
@@ -41,7 +49,9 @@ export default function CourseCard({ course, onSubscribe }: CourseCardProps) {
       <CardContent className="flex-1">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <PlayCircle className="h-4 w-4" />
-          <span>{videoCount} {videoCount === 1 ? 'video' : 'videos'}</span>
+          <span>
+            {videoCount} {videoCount === 1 ? "video" : "videos"}
+          </span>
         </div>
       </CardContent>
       <CardFooter>

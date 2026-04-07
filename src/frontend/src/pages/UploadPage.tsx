@@ -1,31 +1,47 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from '@tanstack/react-router';
-import { useUploadVideo, useGetChannelMembershipTiers, useGetChannel } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload as UploadIcon, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { Category } from '../backend';
-import type { VideoMetadata } from '../backend';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { Loader2, Upload as UploadIcon } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Category } from "../backend";
+import type { VideoMetadata } from "../backend";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useGetChannel,
+  useGetChannelMembershipTiers,
+  useUploadVideo,
+} from "../hooks/useQueries";
 
 export default function UploadPage() {
-  const { channelId } = useParams({ from: '/upload/$channelId' });
+  const { channelId } = useParams({ from: "/upload/$channelId" });
   const { identity, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { data: channel, isLoading: channelLoading } = useGetChannel(channelId);
   const uploadVideo = useUploadVideo();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>(Category.other);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [requiredTierLevel, setRequiredTierLevel] = useState<string>('');
+  const [requiredTierLevel, setRequiredTierLevel] = useState<string>("");
 
   const { data: tiers = [] } = useGetChannelMembershipTiers(channelId);
 
@@ -57,10 +73,12 @@ export default function UploadPage() {
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>Channel Not Found</CardTitle>
-            <CardDescription>The channel you're trying to upload to doesn't exist</CardDescription>
+            <CardDescription>
+              The channel you're trying to upload to doesn't exist
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate({ to: '/my-channels' })}>
+            <Button onClick={() => navigate({ to: "/my-channels" })}>
               Go to My Channels
             </Button>
           </CardContent>
@@ -69,7 +87,9 @@ export default function UploadPage() {
     );
   }
 
-  const isOwner = identity && channel.principal.toString() === identity.getPrincipal().toString();
+  const isOwner =
+    identity &&
+    channel.principal.toString() === identity.getPrincipal().toString();
 
   if (!isOwner) {
     return (
@@ -77,10 +97,16 @@ export default function UploadPage() {
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>Unauthorized</CardTitle>
-            <CardDescription>You can only upload videos to your own channels</CardDescription>
+            <CardDescription>
+              You can only upload videos to your own channels
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate({ to: '/channel/$channelId', params: { channelId } })}>
+            <Button
+              onClick={() =>
+                navigate({ to: "/channel/$channelId", params: { channelId } })
+              }
+            >
               Back to Channel
             </Button>
           </CardContent>
@@ -93,7 +119,7 @@ export default function UploadPage() {
     e.preventDefault();
 
     if (!title.trim() || !videoFile || !thumbnailFile) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -111,16 +137,20 @@ export default function UploadPage() {
         channelId: channelId,
         videoUrl,
         thumbnailUrl,
-        requiredTierLevel: requiredTierLevel ? BigInt(requiredTierLevel) : undefined,
+        requiredTierLevel: requiredTierLevel
+          ? BigInt(requiredTierLevel)
+          : undefined,
         isPrivate: true,
         viewCount: BigInt(0),
       };
 
       await uploadVideo.mutateAsync(metadata);
-      toast.success('Video uploaded successfully');
-      navigate({ to: '/channel/$channelId', params: { channelId } });
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to upload video');
+      toast.success("Video uploaded successfully");
+      navigate({ to: "/channel/$channelId", params: { channelId } });
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Failed to upload video";
+      toast.error(msg);
     }
   };
 
@@ -160,7 +190,11 @@ export default function UploadPage() {
 
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
-              <Select value={category} onValueChange={(value) => setCategory(value as Category)} required>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as Category)}
+                required
+              >
                 <SelectTrigger id="category">
                   <SelectValue />
                 </SelectTrigger>
@@ -178,14 +212,20 @@ export default function UploadPage() {
             {tiers.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="tierLevel">Access Requirement</Label>
-                <Select value={requiredTierLevel} onValueChange={setRequiredTierLevel}>
+                <Select
+                  value={requiredTierLevel}
+                  onValueChange={setRequiredTierLevel}
+                >
                   <SelectTrigger id="tierLevel">
                     <SelectValue placeholder="No tier required" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No tier required</SelectItem>
                     {tiers.map((tier) => (
-                      <SelectItem key={tier.id} value={tier.tierLevel.toString()}>
+                      <SelectItem
+                        key={tier.id}
+                        value={tier.tierLevel.toString()}
+                      >
                         {tier.name} (Level {tier.tierLevel.toString()})
                       </SelectItem>
                     ))}
@@ -219,8 +259,14 @@ export default function UploadPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={uploadVideo.isPending}>
-              {uploadVideo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={uploadVideo.isPending}
+            >
+              {uploadVideo.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Upload Video
             </Button>
           </form>

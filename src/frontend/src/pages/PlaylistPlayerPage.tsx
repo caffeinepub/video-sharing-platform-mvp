@@ -1,17 +1,21 @@
-import { useParams, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import { useGetPlaylist, useGetVideo } from '../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { PlayCircle, SkipForward, SkipBack, Shuffle, Repeat } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useParams } from "@tanstack/react-router";
+import {
+  PlayCircle,
+  Repeat,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useGetPlaylist, useGetVideo } from "../hooks/useQueries";
 
 export default function PlaylistPlayerPage() {
-  const { playlistId } = useParams({ from: '/playlist/$playlistId/play' });
-  const navigate = useNavigate();
+  const { playlistId } = useParams({ from: "/playlist/$playlistId/play" });
   const { data: playlist, isLoading } = useGetPlaylist(playlistId);
-  
+
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
@@ -40,7 +44,9 @@ export default function PlaylistPlayerPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Playlist Not Found</h1>
-          <p className="text-muted-foreground">This playlist doesn't exist or you don't have access to it.</p>
+          <p className="text-muted-foreground">
+            This playlist doesn't exist or you don't have access to it.
+          </p>
         </div>
       </div>
     );
@@ -82,7 +88,9 @@ export default function PlaylistPlayerPage() {
           <Card>
             <CardHeader>
               <CardTitle>{playlist.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">{playlist.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {playlist.description}
+              </p>
             </CardHeader>
             <CardContent>
               {currentVideo ? (
@@ -95,14 +103,22 @@ export default function PlaylistPlayerPage() {
                         className="w-full h-full rounded-lg"
                         src={currentVideo.videoUrl}
                         onEnded={handleNext}
-                      />
+                      >
+                        <track kind="captions" />
+                      </video>
                     ) : (
-                      <p className="text-muted-foreground">Video not available</p>
+                      <p className="text-muted-foreground">
+                        Video not available
+                      </p>
                     )}
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold mb-2">{currentVideo.title}</h2>
-                    <p className="text-sm text-muted-foreground">{currentVideo.description}</p>
+                    <h2 className="text-xl font-semibold mb-2">
+                      {currentVideo.title}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {currentVideo.description}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -117,19 +133,22 @@ export default function PlaylistPlayerPage() {
                       variant="outline"
                       size="icon"
                       onClick={handleNext}
-                      disabled={currentVideoIndex === playlist.videoIds.length - 1 && !repeat}
+                      disabled={
+                        currentVideoIndex === playlist.videoIds.length - 1 &&
+                        !repeat
+                      }
                     >
                       <SkipForward className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant={shuffle ? 'default' : 'outline'}
+                      variant={shuffle ? "default" : "outline"}
                       size="icon"
                       onClick={() => setShuffle(!shuffle)}
                     >
                       <Shuffle className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant={repeat ? 'default' : 'outline'}
+                      variant={repeat ? "default" : "outline"}
                       size="icon"
                       onClick={() => setRepeat(!repeat)}
                     >
@@ -173,7 +192,12 @@ export default function PlaylistPlayerPage() {
   );
 }
 
-function VideoListItem({ videoId, index, isActive, onClick }: { videoId: string; index: number; isActive: boolean; onClick: () => void }) {
+function VideoListItem({
+  videoId,
+  index,
+  isActive,
+  onClick,
+}: { videoId: string; index: number; isActive: boolean; onClick: () => void }) {
   const { data: video } = useGetVideo(videoId);
 
   if (!video) {
@@ -186,9 +210,10 @@ function VideoListItem({ videoId, index, isActive, onClick }: { videoId: string;
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`w-full p-3 border rounded-lg text-left transition-colors hover:bg-muted ${
-        isActive ? 'bg-primary/10 border-primary' : ''
+        isActive ? "bg-primary/10 border-primary" : ""
       }`}
     >
       <div className="flex items-start gap-3">
@@ -197,9 +222,7 @@ function VideoListItem({ videoId, index, isActive, onClick }: { videoId: string;
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-sm line-clamp-2">{video.title}</h4>
-          <p className="text-xs text-muted-foreground mt-1">
-            {video.category}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{video.category}</p>
         </div>
       </div>
     </button>

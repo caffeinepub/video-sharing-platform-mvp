@@ -1,14 +1,23 @@
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { XCircle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { XCircle } from "lucide-react";
 
 export default function PaymentFailurePage() {
   const navigate = useNavigate();
-  const search = useSearch({ from: '/payment-failure' }) as { type?: string; channelId?: string };
+  const search = useSearch({ from: "/payment-failure" }) as {
+    type?: string;
+    channelId?: string;
+  };
 
-  const isSubscription = search.type === 'subscription';
-  const isDonation = search.type === 'donation';
+  const isSubscription = search.type === "subscription";
+  const isDonation = search.type === "donation";
   const channelId = search.channelId;
 
   return (
@@ -21,9 +30,9 @@ export default function PaymentFailurePage() {
             </div>
             <CardTitle className="text-2xl">Payment Cancelled</CardTitle>
             <CardDescription>
-              {isSubscription && 'Your subscription was not completed'}
-              {isDonation && 'Your donation was not processed'}
-              {!isSubscription && !isDonation && 'Your payment was cancelled'}
+              {isSubscription && "Your subscription was not completed"}
+              {isDonation && "Your donation was not processed"}
+              {!isSubscription && !isDonation && "Your payment was cancelled"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -35,7 +44,12 @@ export default function PaymentFailurePage() {
             <div className="space-y-2">
               {channelId && (
                 <Button
-                  onClick={() => navigate({ to: '/channel/$channelId', params: { channelId } })}
+                  onClick={() =>
+                    navigate({
+                      to: "/channel/$channelId",
+                      params: { channelId },
+                    })
+                  }
                   className="w-full"
                 >
                   Back to Channel
@@ -43,7 +57,7 @@ export default function PaymentFailurePage() {
               )}
               <Button
                 variant="outline"
-                onClick={() => navigate({ to: '/' })}
+                onClick={() => navigate({ to: "/" })}
                 className="w-full"
               >
                 Go to Home

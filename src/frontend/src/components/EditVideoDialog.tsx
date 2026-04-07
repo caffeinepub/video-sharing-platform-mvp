@@ -1,16 +1,32 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { useUpdateVideo, useGetChannelMembershipTiers } from '../hooks/useQueries';
-import type { VideoMetadata } from '../backend';
-import { Category } from '../backend';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { VideoMetadata } from "../backend";
+import { Category } from "../backend";
+import {
+  useGetChannelMembershipTiers,
+  useUpdateVideo,
+} from "../hooks/useQueries";
 
 interface EditVideoDialogProps {
   video: VideoMetadata;
@@ -18,15 +34,19 @@ interface EditVideoDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function EditVideoDialog({ video, open, onOpenChange }: EditVideoDialogProps) {
+export default function EditVideoDialog({
+  video,
+  open,
+  onOpenChange,
+}: EditVideoDialogProps) {
   const [title, setTitle] = useState(video.title);
   const [description, setDescription] = useState(video.description);
   const [category, setCategory] = useState<Category>(video.category);
   const [isPrivate, setIsPrivate] = useState(video.isPrivate);
   const [requiredTierLevel, setRequiredTierLevel] = useState<string>(
-    video.requiredTierLevel !== undefined && video.requiredTierLevel !== null 
-      ? Number(video.requiredTierLevel).toString() 
-      : 'none'
+    video.requiredTierLevel !== undefined && video.requiredTierLevel !== null
+      ? Number(video.requiredTierLevel).toString()
+      : "none",
   );
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -37,12 +57,12 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Thumbnail must be less than 5MB');
+        toast.error("Thumbnail must be less than 5MB");
         return;
       }
       setThumbnailFile(file);
@@ -53,7 +73,7 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
     e.preventDefault();
 
     if (!title.trim()) {
-      toast.error('Please enter a video title');
+      toast.error("Please enter a video title");
       return;
     }
 
@@ -63,10 +83,22 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
       if (thumbnailFile) {
         const arrayBuffer = await thumbnailFile.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        const blob = (window as any).ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage: number) => {
-          setUploadProgress(percentage);
-        });
-        thumbnailUrl = blob.getDirectURL();
+        const blob = (
+          window as Window & {
+            ExternalBlob?: {
+              fromBytes: (b: Uint8Array) => {
+                withUploadProgress: (cb: (p: number) => void) => {
+                  getDirectURL: () => string;
+                };
+              };
+            };
+          }
+        ).ExternalBlob?.fromBytes(uint8Array).withUploadProgress(
+          (percentage: number) => {
+            setUploadProgress(percentage);
+          },
+        );
+        thumbnailUrl = blob?.getDirectURL() ?? thumbnailUrl;
       }
 
       const updatedMetadata: VideoMetadata = {
@@ -76,7 +108,8 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
         category,
         isPrivate,
         thumbnailUrl,
-        requiredTierLevel: requiredTierLevel !== 'none' ? BigInt(requiredTierLevel) : undefined,
+        requiredTierLevel:
+          requiredTierLevel !== "none" ? BigInt(requiredTierLevel) : undefined,
       };
 
       await updateVideo.mutateAsync({
@@ -84,13 +117,14 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
         metadata: updatedMetadata,
       });
 
-      toast.success('Video updated successfully');
+      toast.success("Video updated successfully");
       onOpenChange(false);
       setThumbnailFile(null);
       setUploadProgress(0);
-    } catch (error: any) {
-      console.error('Error updating video:', error);
-      toast.error(error.message || 'Failed to update video');
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update video",
+      );
     }
   };
 
@@ -100,7 +134,8 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
         <DialogHeader>
           <DialogTitle>Edit Video</DialogTitle>
           <DialogDescription>
-            Update your video's settings including title, description, category, thumbnail, privacy, and membership requirements.
+            Update your video's settings including title, description, category,
+            thumbnail, privacy, and membership requirements.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -129,7 +164,10 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
 
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={(value) => setCategory(value as Category)}>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as Category)}
+              >
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -175,14 +213,20 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
 
             <div className="space-y-2">
               <Label htmlFor="tier">Required Membership Tier</Label>
-              <Select value={requiredTierLevel} onValueChange={setRequiredTierLevel}>
+              <Select
+                value={requiredTierLevel}
+                onValueChange={setRequiredTierLevel}
+              >
                 <SelectTrigger id="tier">
                   <SelectValue placeholder="No tier required" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No tier required</SelectItem>
                   {tiers.map((tier) => (
-                    <SelectItem key={tier.id} value={Number(tier.tierLevel).toString()}>
+                    <SelectItem
+                      key={tier.id}
+                      value={Number(tier.tierLevel).toString()}
+                    >
                       {tier.name} (Level {Number(tier.tierLevel)})
                     </SelectItem>
                   ))}
@@ -197,7 +241,9 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
               <div className="space-y-0.5">
                 <Label htmlFor="privacy">Privacy</Label>
                 <p className="text-xs text-muted-foreground">
-                  {isPrivate ? 'Only you and course purchasers can view this video' : 'Anyone can view this video'}
+                  {isPrivate
+                    ? "Only you and course purchasers can view this video"
+                    : "Anyone can view this video"}
                 </p>
               </div>
               <Switch
@@ -218,7 +264,9 @@ export default function EditVideoDialog({ video, open, onOpenChange }: EditVideo
               Cancel
             </Button>
             <Button type="submit" disabled={updateVideo.isPending}>
-              {updateVideo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {updateVideo.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Save Changes
             </Button>
           </DialogFooter>

@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useCreateStripeAccount, useUpdateStripeAccount } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,14 +6,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
-import type { StripeAccount } from '../backend';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { StripeAccount } from "../backend";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useCreateStripeAccount,
+  useUpdateStripeAccount,
+} from "../hooks/useQueries";
 
 interface EditStripeAccountDialogProps {
   existingAccount?: StripeAccount;
@@ -23,16 +26,20 @@ interface EditStripeAccountDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function EditStripeAccountDialog({ existingAccount, open, onOpenChange }: EditStripeAccountDialogProps) {
+export default function EditStripeAccountDialog({
+  existingAccount,
+  open,
+  onOpenChange,
+}: EditStripeAccountDialogProps) {
   const { identity } = useAuth();
   const createAccount = useCreateStripeAccount();
   const updateAccount = useUpdateStripeAccount();
 
   const [formData, setFormData] = useState({
-    accountName: '',
-    secretKey: '',
-    connectId: '',
-    payoutSettings: '',
+    accountName: "",
+    secretKey: "",
+    connectId: "",
+    payoutSettings: "",
   });
   const [showSecretKey, setShowSecretKey] = useState(false);
 
@@ -43,38 +50,41 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
       setFormData({
         accountName: existingAccount.accountName,
         secretKey: existingAccount.secretKey,
-        connectId: existingAccount.connectId || '',
-        payoutSettings: existingAccount.payoutSettings || '',
+        connectId: existingAccount.connectId || "",
+        payoutSettings: existingAccount.payoutSettings || "",
       });
     } else if (!isEditMode) {
       setFormData({
-        accountName: '',
-        secretKey: '',
-        connectId: '',
-        payoutSettings: '',
+        accountName: "",
+        secretKey: "",
+        connectId: "",
+        payoutSettings: "",
       });
     }
   }, [existingAccount, isEditMode]);
 
   const handleSubmit = async () => {
     if (!formData.accountName.trim()) {
-      toast.error('Please enter an account name');
+      toast.error("Please enter an account name");
       return;
     }
 
     if (!formData.secretKey.trim()) {
-      toast.error('Please enter a Stripe secret key');
+      toast.error("Please enter a Stripe secret key");
       return;
     }
 
     if (!identity) {
-      toast.error('Authentication required');
+      toast.error("Authentication required");
       return;
     }
 
     try {
       const accountData: StripeAccount = {
-        id: isEditMode && existingAccount ? existingAccount.id : `stripe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id:
+          isEditMode && existingAccount
+            ? existingAccount.id
+            : `stripe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         owner: identity.getPrincipal(),
         accountName: formData.accountName.trim(),
         secretKey: formData.secretKey.trim(),
@@ -83,16 +93,23 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
       };
 
       if (isEditMode && existingAccount) {
-        await updateAccount.mutateAsync({ accountId: existingAccount.id, account: accountData });
-        toast.success('Stripe account updated');
+        await updateAccount.mutateAsync({
+          accountId: existingAccount.id,
+          account: accountData,
+        });
+        toast.success("Stripe account updated");
       } else {
         await createAccount.mutateAsync(accountData);
-        toast.success('Stripe account created');
+        toast.success("Stripe account created");
       }
 
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.message || `Failed to ${isEditMode ? 'update' : 'create'} Stripe account`);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : `Failed to ${isEditMode ? "update" : "create"} Stripe account`;
+      toast.error(message);
     }
   };
 
@@ -100,11 +117,13 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit' : 'Add'} Stripe Account</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? "Edit" : "Add"} Stripe Account
+          </DialogTitle>
           <DialogDescription>
             {isEditMode
-              ? 'Update your Stripe account configuration'
-              : 'Add a new Stripe account for payment processing'}
+              ? "Update your Stripe account configuration"
+              : "Add a new Stripe account for payment processing"}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -114,7 +133,9 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
               id="accountName"
               placeholder="e.g., Main Business Account"
               value={formData.accountName}
-              onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, accountName: e.target.value })
+              }
             />
             <p className="text-xs text-muted-foreground">
               A friendly name to identify this Stripe account
@@ -125,10 +146,12 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
             <div className="relative">
               <Input
                 id="secretKey"
-                type={showSecretKey ? 'text' : 'password'}
+                type={showSecretKey ? "text" : "password"}
                 placeholder="sk_live_..."
                 value={formData.secretKey}
-                onChange={(e) => setFormData({ ...formData, secretKey: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, secretKey: e.target.value })
+                }
                 className="pr-10"
               />
               <Button
@@ -138,7 +161,11 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
                 className="absolute right-0 top-0 h-full"
                 onClick={() => setShowSecretKey(!showSecretKey)}
               >
-                {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showSecretKey ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -146,24 +173,32 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
             </p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="connectId">Stripe Connect Account ID (optional)</Label>
+            <Label htmlFor="connectId">
+              Stripe Connect Account ID (optional)
+            </Label>
             <Input
               id="connectId"
               placeholder="acct_..."
               value={formData.connectId}
-              onChange={(e) => setFormData({ ...formData, connectId: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, connectId: e.target.value })
+              }
             />
             <p className="text-xs text-muted-foreground">
               Your Stripe Connect account ID for advanced integrations
             </p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="payoutSettings">Payout Settings (optional, JSON)</Label>
+            <Label htmlFor="payoutSettings">
+              Payout Settings (optional, JSON)
+            </Label>
             <Textarea
               id="payoutSettings"
               placeholder='{"schedule": "daily", "threshold": 100}'
               value={formData.payoutSettings}
-              onChange={(e) => setFormData({ ...formData, payoutSettings: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, payoutSettings: e.target.value })
+              }
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
@@ -182,7 +217,7 @@ export default function EditStripeAccountDialog({ existingAccount, open, onOpenC
             {(createAccount.isPending || updateAccount.isPending) && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            {isEditMode ? 'Update' : 'Create'} Account
+            {isEditMode ? "Update" : "Create"} Account
           </Button>
         </DialogFooter>
       </DialogContent>

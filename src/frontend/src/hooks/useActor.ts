@@ -1,57 +1,14 @@
-import { useInternetIdentity } from './useInternetIdentity';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { type backendInterface } from '../backend';
-import { createActorWithConfig } from '../config';
+/**
+ * Project-specific useActor wrapper.
+ * Wraps the platform @caffeineai/core-infrastructure useActor with the
+ * generated backend createActor function so every query/mutation hook
+ * gets a fully-typed Backend actor without having to pass the factory
+ * manually each time.
+ */
+import { useActor as usePlatformActor } from "@caffeineai/core-infrastructure";
+import { createActor } from "../backend";
+import type { Backend } from "../backend";
 
-const ACTOR_QUERY_KEY = 'actor';
-export function useActor() {
-    const { identity } = useInternetIdentity();
-    const queryClient = useQueryClient();
-    const actorQuery = useQuery<backendInterface>({
-        queryKey: [ACTOR_QUERY_KEY, identity?.getPrincipal().toString()],
-        queryFn: async () => {
-            const isAuthenticated = !!identity;
-
-            if (!isAuthenticated) {
-                // Return anonymous actor if not authenticated
-                return await createActorWithConfig();
-            }
-
-            const actorOptions = {
-                agentOptions: {
-                    identity
-                }
-            };
-
-            const actor = await createActorWithConfig(actorOptions);
-            await actor.initializeAccessControl();
-            return actor;
-        },
-        // Only refetch when identity changes
-        staleTime: Infinity,
-        // This will cause the actor to be recreated when the identity changes
-        enabled: true
-    });
-
-    // When the actor changes, invalidate dependent queries
-    useEffect(() => {
-        if (actorQuery.data) {
-            queryClient.invalidateQueries({
-                predicate: (query) => {
-                    return !query.queryKey.includes(ACTOR_QUERY_KEY);
-                }
-            });
-            queryClient.refetchQueries({
-                predicate: (query) => {
-                    return !query.queryKey.includes(ACTOR_QUERY_KEY);
-                }
-            });
-        }
-    }, [actorQuery.data, queryClient]);
-
-    return {
-        actor: actorQuery.data || null,
-        isFetching: actorQuery.isFetching
-    };
+export function useActor(): { actor: Backend | null; isFetching: boolean } {
+  return usePlatformActor(createActor);
 }

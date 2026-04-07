@@ -1,17 +1,31 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useActor } from './useActor';
-import type { VideoMetadata, Comment, Channel, UserProfile, ChannelId, MembershipTier, Subscription, Course, Playlist, Donation, StripeAccount, ChannelStripeConnection, StripeConfiguration } from '../backend';
-import { Category } from '../backend';
-import type { Principal } from '@icp-sdk/core/principal';
+import type { Principal } from "@icp-sdk/core/principal";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type {
+  Channel,
+  ChannelId,
+  ChannelStripeConnection,
+  Comment,
+  Course,
+  Donation,
+  MembershipTier,
+  Playlist,
+  StripeAccount,
+  StripeConfiguration,
+  Subscription,
+  UserProfile,
+  VideoMetadata,
+} from "../backend";
+import { Category } from "../backend";
+import { useActor } from "./useActor";
 
 // User Profile Queries
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
 
   const query = useQuery<UserProfile | null>({
-    queryKey: ['currentUserProfile'],
+    queryKey: ["currentUserProfile"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.getCallerUserProfile();
     },
     enabled: !!actor && !actorFetching,
@@ -29,11 +43,12 @@ export function useGetUserProfile(principal: Principal | string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<UserProfile | null>({
-    queryKey: ['userProfile', principal?.toString()],
+    queryKey: ["userProfile", principal?.toString()],
     queryFn: async () => {
       if (!actor || !principal) return null;
-      const principalObj = typeof principal === 'string' ? principal : principal;
-      return actor.getUserProfile(principalObj as any);
+      return actor.getUserProfile(
+        principal as Parameters<typeof actor.getUserProfile>[0],
+      );
     },
     enabled: !!actor && !isFetching && !!principal,
   });
@@ -45,11 +60,11 @@ export function useSaveCallerUserProfile() {
 
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+      queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
     },
   });
 }
@@ -60,15 +75,15 @@ export function useUpdateCallerUserProfile() {
 
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.updateCallerUserProfile(profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['comments'] });
-      queryClient.invalidateQueries({ queryKey: ['channel'] });
-      queryClient.invalidateQueries({ queryKey: ['userChannels'] });
+      queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["comments"] });
+      queryClient.invalidateQueries({ queryKey: ["channel"] });
+      queryClient.invalidateQueries({ queryKey: ["userChannels"] });
     },
   });
 }
@@ -78,7 +93,7 @@ export function useIsCallerAdmin() {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['isCallerAdmin'],
+    queryKey: ["isCallerAdmin"],
     queryFn: async () => {
       if (!actor) return false;
       return actor.isCallerAdmin();
@@ -92,9 +107,9 @@ export function useGetAllVideos() {
   const { actor, isFetching } = useActor();
 
   return useQuery<VideoMetadata[]>({
-    queryKey: ['videos', 'all'],
+    queryKey: ["videos", "all"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       const categories: Category[] = [
         Category.music,
         Category.gaming,
@@ -104,7 +119,11 @@ export function useGetAllVideos() {
         Category.other,
       ];
       const allVideos = await Promise.all(
-        categories.map((cat) => actor.getVideosByCategory(cat as any))
+        categories.map((cat) =>
+          actor.getVideosByCategory(
+            cat as Parameters<typeof actor.getVideosByCategory>[0],
+          ),
+        ),
       );
       return allVideos.flat();
     },
@@ -121,10 +140,10 @@ export function useGetVideo(videoId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<VideoMetadata | null>({
-    queryKey: ['video', videoId],
+    queryKey: ["video", videoId],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
-      if (!videoId) throw new Error('Video ID is required');
+      if (!actor) throw new Error("Actor not initialized");
+      if (!videoId) throw new Error("Video ID is required");
       const video = await actor.getVideo(videoId);
       return video;
     },
@@ -140,10 +159,12 @@ export function useGetVideosByCategory(category: Category) {
   const { actor, isFetching } = useActor();
 
   return useQuery<VideoMetadata[]>({
-    queryKey: ['videos', 'category', category],
+    queryKey: ["videos", "category", category],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getVideosByCategory(category as any);
+      return actor.getVideosByCategory(
+        category as Parameters<typeof actor.getVideosByCategory>[0],
+      );
     },
     enabled: !!actor && !isFetching,
     staleTime: 0,
@@ -156,7 +177,7 @@ export function useSearchVideos(searchTerm: string) {
   const { actor, isFetching } = useActor();
 
   return useQuery<VideoMetadata[]>({
-    queryKey: ['videos', 'search', searchTerm],
+    queryKey: ["videos", "search", searchTerm],
     queryFn: async () => {
       if (!actor || !searchTerm) return [];
       return actor.searchVideos(searchTerm);
@@ -174,17 +195,18 @@ export function useUploadVideo() {
 
   return useMutation({
     mutationFn: async (metadata: VideoMetadata) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       await actor.uploadVideo(metadata);
     },
     onSuccess: (_, metadata) => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
-      queryClient.invalidateQueries({ queryKey: ['channelVideos', metadata.channelId] });
-      queryClient.invalidateQueries({ queryKey: ['userChannels'] });
-      queryClient.refetchQueries({ queryKey: ['videos', 'all'] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelVideos", metadata.channelId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["userChannels"] });
+      queryClient.refetchQueries({ queryKey: ["videos", "all"] });
     },
-    onError: (error: any) => {
-      console.error('Upload video mutation error:', error);
+    onError: (error: Error) => {
       throw error;
     },
   });
@@ -195,14 +217,19 @@ export function useUpdateVideo() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ videoId, metadata }: { videoId: string; metadata: VideoMetadata }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      videoId,
+      metadata,
+    }: { videoId: string; metadata: VideoMetadata }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.updateVideo(videoId, metadata);
     },
     onSuccess: (_, { videoId, metadata }) => {
-      queryClient.invalidateQueries({ queryKey: ['video', videoId] });
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
-      queryClient.invalidateQueries({ queryKey: ['channelVideos', metadata.channelId] });
+      queryClient.invalidateQueries({ queryKey: ["video", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelVideos", metadata.channelId],
+      });
     },
   });
 }
@@ -213,12 +240,12 @@ export function useToggleVideoPrivacy() {
 
   return useMutation({
     mutationFn: async (videoId: string) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.toggleVideoPrivacy(videoId);
     },
     onSuccess: (_, videoId) => {
-      queryClient.invalidateQueries({ queryKey: ['video', videoId] });
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
+      queryClient.invalidateQueries({ queryKey: ["video", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
     },
   });
 }
@@ -228,13 +255,16 @@ export function useDeleteVideo() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ videoId, channelId }: { videoId: string; channelId: string }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      videoId,
+      channelId: _channelId,
+    }: { videoId: string; channelId: string }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.deleteVideo(videoId);
     },
     onSuccess: (_, { channelId }) => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
-      queryClient.invalidateQueries({ queryKey: ['channelVideos', channelId] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({ queryKey: ["channelVideos", channelId] });
     },
   });
 }
@@ -245,12 +275,12 @@ export function useLikeVideo() {
 
   return useMutation({
     mutationFn: async (videoId: string) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.likeVideo(videoId);
     },
     onSuccess: (_, videoId) => {
-      queryClient.invalidateQueries({ queryKey: ['video', videoId] });
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
+      queryClient.invalidateQueries({ queryKey: ["video", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
     },
   });
 }
@@ -260,7 +290,7 @@ export function useGetComments(videoId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Comment[]>({
-    queryKey: ['comments', videoId],
+    queryKey: ["comments", videoId],
     queryFn: async () => {
       if (!actor || !videoId) return [];
       return actor.getComments(videoId);
@@ -278,11 +308,13 @@ export function useAddComment() {
 
   return useMutation({
     mutationFn: async (comment: Comment) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.addComment(comment);
     },
     onSuccess: (_, comment) => {
-      queryClient.invalidateQueries({ queryKey: ['comments', comment.videoId] });
+      queryClient.invalidateQueries({
+        queryKey: ["comments", comment.videoId],
+      });
     },
   });
 }
@@ -292,7 +324,7 @@ export function useGetChannel(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Channel | null>({
-    queryKey: ['channel', channelId],
+    queryKey: ["channel", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return null;
       return actor.getChannel(channelId);
@@ -308,7 +340,7 @@ export function useGetUserChannels() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Channel[]>({
-    queryKey: ['userChannels'],
+    queryKey: ["userChannels"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getUserChannels();
@@ -324,10 +356,12 @@ export function useGetChannelVideos(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<VideoMetadata[]>({
-    queryKey: ['channelVideos', channelId],
+    queryKey: ["channelVideos", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return [];
-      return actor.getChannelVideos(channelId as any);
+      return actor.getChannelVideos(
+        channelId as Parameters<typeof actor.getChannelVideos>[0],
+      );
     },
     enabled: !!actor && !isFetching && !!channelId,
     staleTime: 0,
@@ -342,12 +376,14 @@ export function useCreateChannel() {
 
   return useMutation({
     mutationFn: async (channel: Channel) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.createChannel(channel);
     },
     onSuccess: (_, channel) => {
-      queryClient.invalidateQueries({ queryKey: ['channel', channel.id.toString()] });
-      queryClient.invalidateQueries({ queryKey: ['userChannels'] });
+      queryClient.invalidateQueries({
+        queryKey: ["channel", channel.id.toString()],
+      });
+      queryClient.invalidateQueries({ queryKey: ["userChannels"] });
     },
   });
 }
@@ -357,13 +393,17 @@ export function useUpdateChannel() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ channelId, name, profile }: { channelId: string; name: string; profile: string }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      channelId,
+      name,
+      profile,
+    }: { channelId: string; name: string; profile: string }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.updateChannel(channelId, name, profile);
     },
     onSuccess: (_, { channelId }) => {
-      queryClient.invalidateQueries({ queryKey: ['channel', channelId] });
-      queryClient.invalidateQueries({ queryKey: ['userChannels'] });
+      queryClient.invalidateQueries({ queryKey: ["channel", channelId] });
+      queryClient.invalidateQueries({ queryKey: ["userChannels"] });
     },
   });
 }
@@ -375,13 +415,15 @@ export function useFollowChannel() {
 
   return useMutation({
     mutationFn: async (channelId: ChannelId) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.followChannel(channelId);
     },
     onSuccess: (_, channelId) => {
-      queryClient.invalidateQueries({ queryKey: ['followedChannels'] });
-      queryClient.invalidateQueries({ queryKey: ['isFollowing', channelId] });
-      queryClient.invalidateQueries({ queryKey: ['channelFollowers', channelId] });
+      queryClient.invalidateQueries({ queryKey: ["followedChannels"] });
+      queryClient.invalidateQueries({ queryKey: ["isFollowing", channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelFollowers", channelId],
+      });
     },
   });
 }
@@ -392,13 +434,15 @@ export function useUnfollowChannel() {
 
   return useMutation({
     mutationFn: async (channelId: ChannelId) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.unfollowChannel(channelId);
     },
     onSuccess: (_, channelId) => {
-      queryClient.invalidateQueries({ queryKey: ['followedChannels'] });
-      queryClient.invalidateQueries({ queryKey: ['isFollowing', channelId] });
-      queryClient.invalidateQueries({ queryKey: ['channelFollowers', channelId] });
+      queryClient.invalidateQueries({ queryKey: ["followedChannels"] });
+      queryClient.invalidateQueries({ queryKey: ["isFollowing", channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelFollowers", channelId],
+      });
     },
   });
 }
@@ -407,7 +451,7 @@ export function useIsFollowingChannel(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['isFollowing', channelId],
+    queryKey: ["isFollowing", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return false;
       return actor.isFollowingChannel(channelId);
@@ -420,7 +464,7 @@ export function useGetFollowedChannels() {
   const { actor, isFetching } = useActor();
 
   return useQuery<ChannelId[]>({
-    queryKey: ['followedChannels'],
+    queryKey: ["followedChannels"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getFollowedChannels();
@@ -433,7 +477,7 @@ export function useGetChannelFollowers(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Principal[]>({
-    queryKey: ['channelFollowers', channelId],
+    queryKey: ["channelFollowers", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return [];
       return actor.getChannelFollowers(channelId);
@@ -447,7 +491,7 @@ export function useGetChannelMembershipTiers(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<MembershipTier[]>({
-    queryKey: ['membershipTiers', channelId],
+    queryKey: ["membershipTiers", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return [];
       return actor.getChannelMembershipTiers(channelId);
@@ -462,11 +506,13 @@ export function useCreateMembershipTier() {
 
   return useMutation({
     mutationFn: async (tier: MembershipTier) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.createMembershipTier(tier);
     },
     onSuccess: (_, tier) => {
-      queryClient.invalidateQueries({ queryKey: ['membershipTiers', tier.channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["membershipTiers", tier.channelId],
+      });
     },
   });
 }
@@ -476,12 +522,17 @@ export function useUpdateMembershipTier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tierId, tier }: { tierId: string; tier: MembershipTier }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      tierId,
+      tier,
+    }: { tierId: string; tier: MembershipTier }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.updateMembershipTier(tierId, tier);
     },
     onSuccess: (_, { tier }) => {
-      queryClient.invalidateQueries({ queryKey: ['membershipTiers', tier.channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["membershipTiers", tier.channelId],
+      });
     },
   });
 }
@@ -491,12 +542,17 @@ export function useDeleteMembershipTier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tierId, channelId }: { tierId: string; channelId: string }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      tierId,
+      channelId: _channelId,
+    }: { tierId: string; channelId: string }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.deleteMembershipTier(tierId);
     },
     onSuccess: (_, { channelId }) => {
-      queryClient.invalidateQueries({ queryKey: ['membershipTiers', channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["membershipTiers", channelId],
+      });
     },
   });
 }
@@ -506,7 +562,7 @@ export function useGetUserSubscriptionTierLevel(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<bigint | null>({
-    queryKey: ['userSubscriptionTierLevel', channelId],
+    queryKey: ["userSubscriptionTierLevel", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return null;
       return actor.getUserSubscriptionTierLevel(channelId);
@@ -519,7 +575,7 @@ export function useHasActiveSubscription(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['hasActiveSubscription', channelId],
+    queryKey: ["hasActiveSubscription", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return false;
       return actor.hasActiveSubscription(channelId);
@@ -534,12 +590,16 @@ export function useCreateSubscription() {
 
   return useMutation({
     mutationFn: async (subscription: Subscription) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.createSubscription(subscription);
     },
     onSuccess: (_, subscription) => {
-      queryClient.invalidateQueries({ queryKey: ['hasActiveSubscription', subscription.channelId] });
-      queryClient.invalidateQueries({ queryKey: ['userSubscriptionTierLevel', subscription.channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["hasActiveSubscription", subscription.channelId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["userSubscriptionTierLevel", subscription.channelId],
+      });
     },
   });
 }
@@ -549,13 +609,20 @@ export function useCancelSubscription() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ subscriptionId, channelId }: { subscriptionId: string; channelId: string }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      subscriptionId,
+      channelId: _channelId,
+    }: { subscriptionId: string; channelId: string }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.cancelSubscription(subscriptionId);
     },
     onSuccess: (_, { channelId }) => {
-      queryClient.invalidateQueries({ queryKey: ['hasActiveSubscription', channelId] });
-      queryClient.invalidateQueries({ queryKey: ['userSubscriptionTierLevel', channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["hasActiveSubscription", channelId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["userSubscriptionTierLevel", channelId],
+      });
     },
   });
 }
@@ -565,7 +632,7 @@ export function useGetChannelCourses(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Course[]>({
-    queryKey: ['channelCourses', channelId],
+    queryKey: ["channelCourses", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return [];
       return actor.getChannelCourses(channelId);
@@ -578,7 +645,7 @@ export function useGetCourse(courseId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Course | null>({
-    queryKey: ['course', courseId],
+    queryKey: ["course", courseId],
     queryFn: async () => {
       if (!actor || !courseId) return null;
       return actor.getCourse(courseId);
@@ -591,7 +658,7 @@ export function useGetPersonalizedCourses() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Course[]>({
-    queryKey: ['personalizedCourses'],
+    queryKey: ["personalizedCourses"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getPersonalizedCourses();
@@ -606,11 +673,13 @@ export function useCreateCourse() {
 
   return useMutation({
     mutationFn: async (course: Course) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.createCourse(course);
     },
     onSuccess: (_, course) => {
-      queryClient.invalidateQueries({ queryKey: ['channelCourses', course.channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelCourses", course.channelId],
+      });
     },
   });
 }
@@ -620,14 +689,19 @@ export function useUpdateCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ courseId, course }: { courseId: string; course: Course }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      courseId,
+      course,
+    }: { courseId: string; course: Course }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.updateCourse(courseId, course);
     },
     onSuccess: (_, { courseId, course }) => {
-      queryClient.invalidateQueries({ queryKey: ['course', courseId] });
-      queryClient.invalidateQueries({ queryKey: ['channelCourses', course.channelId] });
-      queryClient.invalidateQueries({ queryKey: ['personalizedCourses'] });
+      queryClient.invalidateQueries({ queryKey: ["course", courseId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelCourses", course.channelId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["personalizedCourses"] });
     },
   });
 }
@@ -637,12 +711,17 @@ export function useDeleteCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ courseId, channelId }: { courseId: string; channelId: string }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      courseId,
+      channelId: _channelId,
+    }: { courseId: string; channelId: string }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.deleteCourse(courseId);
     },
     onSuccess: (_, { channelId }) => {
-      queryClient.invalidateQueries({ queryKey: ['channelCourses', channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelCourses", channelId],
+      });
     },
   });
 }
@@ -652,7 +731,7 @@ export function useGetUserPlaylists() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Playlist[]>({
-    queryKey: ['userPlaylists'],
+    queryKey: ["userPlaylists"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getUserPlaylists();
@@ -665,7 +744,7 @@ export function useGetPlaylist(playlistId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Playlist | null>({
-    queryKey: ['playlist', playlistId],
+    queryKey: ["playlist", playlistId],
     queryFn: async () => {
       if (!actor || !playlistId) return null;
       return actor.getPlaylist(playlistId);
@@ -680,11 +759,11 @@ export function useCreatePlaylist() {
 
   return useMutation({
     mutationFn: async (playlist: Playlist) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.createPlaylist(playlist);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPlaylists'] });
+      queryClient.invalidateQueries({ queryKey: ["userPlaylists"] });
     },
   });
 }
@@ -694,13 +773,16 @@ export function useUpdatePlaylist() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ playlistId, playlist }: { playlistId: string; playlist: Playlist }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      playlistId,
+      playlist,
+    }: { playlistId: string; playlist: Playlist }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.updatePlaylist(playlistId, playlist);
     },
     onSuccess: (_, { playlistId }) => {
-      queryClient.invalidateQueries({ queryKey: ['playlist', playlistId] });
-      queryClient.invalidateQueries({ queryKey: ['userPlaylists'] });
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["userPlaylists"] });
     },
   });
 }
@@ -711,11 +793,11 @@ export function useDeletePlaylist() {
 
   return useMutation({
     mutationFn: async (playlistId: string) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.deletePlaylist(playlistId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPlaylists'] });
+      queryClient.invalidateQueries({ queryKey: ["userPlaylists"] });
     },
   });
 }
@@ -725,7 +807,7 @@ export function useGetChannelDonations(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Donation[]>({
-    queryKey: ['channelDonations', channelId],
+    queryKey: ["channelDonations", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return [];
       return actor.getChannelDonations(channelId);
@@ -740,11 +822,13 @@ export function useRecordDonation() {
 
   return useMutation({
     mutationFn: async (donation: Donation) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.recordDonation(donation);
     },
     onSuccess: (_, donation) => {
-      queryClient.invalidateQueries({ queryKey: ['channelDonations', donation.channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelDonations", donation.channelId],
+      });
     },
   });
 }
@@ -754,7 +838,7 @@ export function useGetUserStripeAccounts() {
   const { actor, isFetching } = useActor();
 
   return useQuery<StripeAccount[]>({
-    queryKey: ['userStripeAccounts'],
+    queryKey: ["userStripeAccounts"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getUserStripeAccounts();
@@ -767,7 +851,7 @@ export function useGetStripeAccount(accountId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<StripeAccount | null>({
-    queryKey: ['stripeAccount', accountId],
+    queryKey: ["stripeAccount", accountId],
     queryFn: async () => {
       if (!actor || !accountId) return null;
       return actor.getStripeAccount(accountId);
@@ -782,11 +866,11 @@ export function useCreateStripeAccount() {
 
   return useMutation({
     mutationFn: async (account: StripeAccount) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.createStripeAccount(account);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userStripeAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ["userStripeAccounts"] });
     },
   });
 }
@@ -796,13 +880,16 @@ export function useUpdateStripeAccount() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ accountId, account }: { accountId: string; account: StripeAccount }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      accountId,
+      account,
+    }: { accountId: string; account: StripeAccount }) => {
+      if (!actor) throw new Error("Actor not available");
       return actor.updateStripeAccount(accountId, account);
     },
     onSuccess: (_, { accountId }) => {
-      queryClient.invalidateQueries({ queryKey: ['stripeAccount', accountId] });
-      queryClient.invalidateQueries({ queryKey: ['userStripeAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ["stripeAccount", accountId] });
+      queryClient.invalidateQueries({ queryKey: ["userStripeAccounts"] });
     },
   });
 }
@@ -813,11 +900,11 @@ export function useDeleteStripeAccount() {
 
   return useMutation({
     mutationFn: async (accountId: string) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.deleteStripeAccount(accountId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userStripeAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ["userStripeAccounts"] });
     },
   });
 }
@@ -827,7 +914,7 @@ export function useGetChannelStripeConnection(channelId: string | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<ChannelStripeConnection | null>({
-    queryKey: ['channelStripeConnection', channelId],
+    queryKey: ["channelStripeConnection", channelId],
     queryFn: async () => {
       if (!actor || !channelId) return null;
       return actor.getChannelStripeConnection(channelId);
@@ -842,11 +929,13 @@ export function useConnectChannelToStripeAccount() {
 
   return useMutation({
     mutationFn: async (connection: ChannelStripeConnection) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.connectChannelToStripeAccount(connection);
     },
     onSuccess: (_, connection) => {
-      queryClient.invalidateQueries({ queryKey: ['channelStripeConnection', connection.channelId] });
+      queryClient.invalidateQueries({
+        queryKey: ["channelStripeConnection", connection.channelId],
+      });
     },
   });
 }
@@ -856,7 +945,7 @@ export function useIsStripeConfigured() {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['isStripeConfigured'],
+    queryKey: ["isStripeConfigured"],
     queryFn: async () => {
       if (!actor) return false;
       return actor.isStripeConfigured();
@@ -871,11 +960,11 @@ export function useSetStripeConfiguration() {
 
   return useMutation({
     mutationFn: async (config: StripeConfiguration) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.setStripeConfiguration(config);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isStripeConfigured'] });
+      queryClient.invalidateQueries({ queryKey: ["isStripeConfigured"] });
     },
   });
 }

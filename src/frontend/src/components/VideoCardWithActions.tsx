@@ -1,12 +1,3 @@
-import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { formatDistanceToNow } from 'date-fns';
-import { Lock } from 'lucide-react';
-import type { VideoMetadata } from '../backend';
-import { useGetChannel, useDeleteVideo } from '../hooks/useQueries';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,17 +7,29 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Loader2 } from 'lucide-react';
-import EditVideoDialog from './EditVideoDialog';
-import { toast } from 'sonner';
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import { formatDistanceToNow } from "date-fns";
+import { Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { VideoMetadata } from "../backend";
+import { useDeleteVideo, useGetChannel } from "../hooks/useQueries";
+import EditVideoDialog from "./EditVideoDialog";
 
 interface VideoCardWithActionsProps {
   video: VideoMetadata;
   showActions?: boolean;
 }
 
-export default function VideoCardWithActions({ video, showActions = false }: VideoCardWithActionsProps) {
+export default function VideoCardWithActions({
+  video,
+  showActions = false,
+}: VideoCardWithActionsProps) {
   const { data: channel } = useGetChannel(video.channelId);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -45,11 +48,12 @@ export default function VideoCardWithActions({ video, showActions = false }: Vid
         videoId: video.id,
         channelId: video.channelId,
       });
-      toast.success('Video deleted successfully');
+      toast.success("Video deleted successfully");
       setDeleteDialogOpen(false);
-    } catch (error: any) {
-      console.error('Error deleting video:', error);
-      toast.error(error.message || 'Failed to delete video');
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete video",
+      );
     }
   };
 
@@ -85,10 +89,13 @@ export default function VideoCardWithActions({ video, showActions = false }: Vid
           </div>
         </Link>
         <div className="mt-3 flex gap-3">
-          <Link to="/channel/$channelId" params={{ channelId: video.channelId.toString() }}>
+          <Link
+            to="/channel/$channelId"
+            params={{ channelId: video.channelId.toString() }}
+          >
             <Avatar className="h-9 w-9">
               <AvatarImage src="/assets/generated/default-avatar.dim_100x100.png" />
-              <AvatarFallback>{channel?.name?.[0] || 'U'}</AvatarFallback>
+              <AvatarFallback>{channel?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
           </Link>
           <div className="flex-1 min-w-0">
@@ -103,13 +110,18 @@ export default function VideoCardWithActions({ video, showActions = false }: Vid
               className="mt-1 block"
             >
               <p className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {channel?.name || 'Unknown Channel'}
+                {channel?.name || "Unknown Channel"}
               </p>
             </Link>
             <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <span>{formatViews(video.likeCount)} likes</span>
               <span>•</span>
-              <span>{formatDistanceToNow(new Date(Number(video.uploadDate) / 1000000), { addSuffix: true })}</span>
+              <span>
+                {formatDistanceToNow(
+                  new Date(Number(video.uploadDate) / 1000000),
+                  { addSuffix: true },
+                )}
+              </span>
             </div>
           </div>
         </div>
@@ -122,7 +134,11 @@ export default function VideoCardWithActions({ video, showActions = false }: Vid
               onClick={() => setEditDialogOpen(true)}
               className="flex-1"
             >
-              <img src="/assets/generated/edit-icon.dim_24x24.png" alt="" className="mr-2 h-4 w-4" />
+              <img
+                src="/assets/generated/edit-icon.dim_24x24.png"
+                alt=""
+                className="mr-2 h-4 w-4"
+              />
               Edit
             </Button>
             <Button
@@ -135,7 +151,11 @@ export default function VideoCardWithActions({ video, showActions = false }: Vid
               {deleteVideo.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <img src="/assets/generated/delete-icon.dim_24x24.png" alt="" className="mr-2 h-4 w-4" />
+                <img
+                  src="/assets/generated/delete-icon.dim_24x24.png"
+                  alt=""
+                  className="mr-2 h-4 w-4"
+                />
               )}
               Delete
             </Button>
@@ -143,24 +163,34 @@ export default function VideoCardWithActions({ video, showActions = false }: Vid
         )}
       </div>
 
-      <EditVideoDialog video={video} open={editDialogOpen} onOpenChange={setEditDialogOpen} />
+      <EditVideoDialog
+        video={video}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Video</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{video.title}"? This action cannot be undone and will permanently remove the video from your channel.
+              Are you sure you want to delete "{video.title}"? This action
+              cannot be undone and will permanently remove the video from your
+              channel.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteVideo.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteVideo.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteVideo.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteVideo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {deleteVideo.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

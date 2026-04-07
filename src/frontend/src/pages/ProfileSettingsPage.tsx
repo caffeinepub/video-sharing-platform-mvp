@@ -1,22 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useGetCallerUserProfile, useUpdateCallerUserProfile } from '../hooks/useQueries';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { User } from 'lucide-react';
-import ProtectedRoute from '../components/ProtectedRoute';
-import StripeAccountsList from '../components/StripeAccountsList';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import ProtectedRoute from "../components/ProtectedRoute";
+import StripeAccountsList from "../components/StripeAccountsList";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useGetCallerUserProfile,
+  useUpdateCallerUserProfile,
+} from "../hooks/useQueries";
 
 function ProfileSettingsPageContent() {
   const { identity } = useAuth();
   const { data: userProfile } = useGetCallerUserProfile();
   const updateProfile = useUpdateCallerUserProfile();
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -37,27 +46,28 @@ function ProfileSettingsPageContent() {
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error('Name cannot be empty');
+      toast.error("Name cannot be empty");
       return;
     }
 
     if (name.trim().length < 2) {
-      toast.error('Name must be at least 2 characters long');
+      toast.error("Name must be at least 2 characters long");
       return;
     }
 
     if (name.trim().length > 50) {
-      toast.error('Name must be less than 50 characters');
+      toast.error("Name must be less than 50 characters");
       return;
     }
 
     try {
       await updateProfile.mutateAsync({ name: name.trim() });
-      toast.success('Profile updated successfully');
+      toast.success("Profile updated successfully");
       setHasChanges(false);
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Failed to update profile";
+      toast.error(msg);
     }
   };
 
@@ -84,7 +94,8 @@ function ProfileSettingsPageContent() {
             <CardTitle>Profile Settings</CardTitle>
           </div>
           <CardDescription>
-            Update your personal information. Changes will be reflected across the app.
+            Update your personal information. Changes will be reflected across
+            the app.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,7 +112,8 @@ function ProfileSettingsPageContent() {
                 required
               />
               <p className="text-sm text-muted-foreground">
-                This is the name that will be displayed on your channel and comments.
+                This is the name that will be displayed on your channel and
+                comments.
               </p>
             </div>
 
@@ -122,7 +134,7 @@ function ProfileSettingsPageContent() {
                 type="submit"
                 disabled={!hasChanges || updateProfile.isPending}
               >
-                {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
+                {updateProfile.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>

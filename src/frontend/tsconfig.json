@@ -8,7 +8,10 @@
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
+    "useUnknownInCatchVariables": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -23,5 +26,10 @@
     }
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "build", "*.config.js", "eslint-rules/**/*"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "*.config.js"
+  ]
 }

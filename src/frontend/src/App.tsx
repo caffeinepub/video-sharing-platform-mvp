@@ -1,30 +1,36 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute } from '@tanstack/react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'next-themes';
-import { Toaster } from '@/components/ui/sonner';
-import { InternetIdentityProvider } from './hooks/useInternetIdentity';
-import { AuthProvider } from './contexts/AuthContext';
-import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
-import UploadPage from './pages/UploadPage';
-import WatchPage from './pages/WatchPage';
-import ChannelPage from './pages/ChannelPage';
-import SearchPage from './pages/SearchPage';
-import ProfileSettingsPage from './pages/ProfileSettingsPage';
-import MyChannelsPage from './pages/MyChannelsPage';
-import FollowingPage from './pages/FollowingPage';
-import ChannelSettingsPage from './pages/ChannelSettingsPage';
-import SubscriptionsPage from './pages/SubscriptionsPage';
-import CourseManagementPage from './pages/CourseManagementPage';
-import CoursePlayerPage from './pages/CoursePlayerPage';
-import PlaylistsPage from './pages/PlaylistsPage';
-import PlaylistEditPage from './pages/PlaylistEditPage';
-import PlaylistPlayerPage from './pages/PlaylistPlayerPage';
-import PaymentSuccessPage from './pages/PaymentSuccessPage';
-import PaymentFailurePage from './pages/PaymentFailurePage';
-import ChannelAnalyticsPage from './pages/ChannelAnalyticsPage';
-import ProfileSetupModal from './components/ProfileSetupModal';
-import StripeConfigurationSetup from './components/StripeConfigurationSetup';
+import { Toaster } from "@/components/ui/sonner";
+import { InternetIdentityProvider } from "@caffeineai/core-infrastructure";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import { ThemeProvider } from "next-themes";
+import ErrorBoundary from "./components/ErrorBoundary";
+import Layout from "./components/Layout";
+import ProfileSetupModal from "./components/ProfileSetupModal";
+import StripeConfigurationSetup from "./components/StripeConfigurationSetup";
+import { AuthProvider } from "./contexts/AuthContext";
+import ChannelAnalyticsPage from "./pages/ChannelAnalyticsPage";
+import ChannelPage from "./pages/ChannelPage";
+import ChannelSettingsPage from "./pages/ChannelSettingsPage";
+import CourseManagementPage from "./pages/CourseManagementPage";
+import CoursePlayerPage from "./pages/CoursePlayerPage";
+import FollowingPage from "./pages/FollowingPage";
+import HomePage from "./pages/HomePage";
+import MyChannelsPage from "./pages/MyChannelsPage";
+import PaymentFailurePage from "./pages/PaymentFailurePage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import PlaylistEditPage from "./pages/PlaylistEditPage";
+import PlaylistPlayerPage from "./pages/PlaylistPlayerPage";
+import PlaylistsPage from "./pages/PlaylistsPage";
+import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import SearchPage from "./pages/SearchPage";
+import SubscriptionsPage from "./pages/SubscriptionsPage";
+import UploadPage from "./pages/UploadPage";
+import WatchPage from "./pages/WatchPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,109 +48,109 @@ const rootRoute = createRootRoute({
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: HomePage,
 });
 
 const uploadRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/upload/$channelId',
+  path: "/upload/$channelId",
   component: UploadPage,
 });
 
 const watchRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/watch/$videoId',
+  path: "/watch/$videoId",
   component: WatchPage,
 });
 
 const channelRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/channel/$channelId',
+  path: "/channel/$channelId",
   component: ChannelPage,
 });
 
 const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/search',
+  path: "/search",
   component: SearchPage,
 });
 
 const profileSettingsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/settings/profile',
+  path: "/settings/profile",
   component: ProfileSettingsPage,
 });
 
 const myChannelsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/my-channels',
+  path: "/my-channels",
   component: MyChannelsPage,
 });
 
 const followingRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/following',
+  path: "/following",
   component: FollowingPage,
 });
 
 const channelSettingsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/channel/$channelId/settings',
+  path: "/channel/$channelId/settings",
   component: ChannelSettingsPage,
 });
 
 const subscriptionsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/subscriptions',
+  path: "/subscriptions",
   component: SubscriptionsPage,
 });
 
 const courseManagementRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/channel/$channelId/courses/manage',
+  path: "/channel/$channelId/courses/manage",
   component: CourseManagementPage,
 });
 
 const coursePlayerRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/course/$courseId/play',
+  path: "/course/$courseId/play",
   component: CoursePlayerPage,
 });
 
 const playlistsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/playlists',
+  path: "/playlists",
   component: PlaylistsPage,
 });
 
 const playlistEditRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/playlist/$playlistId/edit',
+  path: "/playlist/$playlistId/edit",
   component: PlaylistEditPage,
 });
 
 const playlistPlayerRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/playlist/$playlistId/play',
+  path: "/playlist/$playlistId/play",
   component: PlaylistPlayerPage,
 });
 
 const paymentSuccessRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/payment-success',
+  path: "/payment-success",
   component: PaymentSuccessPage,
 });
 
 const paymentFailureRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/payment-failure',
+  path: "/payment-failure",
   component: PaymentFailurePage,
 });
 
 const channelAnalyticsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/channel/$channelId/analytics',
+  path: "/channel/$channelId/analytics",
   component: ChannelAnalyticsPage,
 });
 
@@ -171,7 +177,7 @@ const routeTree = rootRoute.addChildren([
 
 const router = createRouter({ routeTree });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }
@@ -179,17 +185,19 @@ declare module '@tanstack/react-router' {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <InternetIdentityProvider>
-          <AuthProvider>
-            <RouterProvider router={router} />
-            <Toaster />
-            <ProfileSetupModal />
-            <StripeConfigurationSetup />
-          </AuthProvider>
-        </InternetIdentityProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <InternetIdentityProvider>
+            <AuthProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+              <ProfileSetupModal />
+              <StripeConfigurationSetup />
+            </AuthProvider>
+          </InternetIdentityProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

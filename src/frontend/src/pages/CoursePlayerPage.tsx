@@ -1,20 +1,23 @@
-import { useParams } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useGetCourse, useGetChannel } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { GraduationCap, Edit } from 'lucide-react';
-import EditCourseDialog from '../components/EditCourseDialog';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams } from "@tanstack/react-router";
+import { Edit, GraduationCap } from "lucide-react";
+import { useState } from "react";
+import EditCourseDialog from "../components/EditCourseDialog";
+import { useAuth } from "../contexts/AuthContext";
+import { useGetChannel, useGetCourse } from "../hooks/useQueries";
 
 export default function CoursePlayerPage() {
-  const { courseId } = useParams({ from: '/course/$courseId/play' });
+  const { courseId } = useParams({ from: "/course/$courseId/play" });
   const { identity } = useAuth();
   const { data: course, isLoading } = useGetCourse(courseId);
   const { data: channel } = useGetChannel(course?.channelId);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const isOwner = identity && channel && channel.principal.toString() === identity.getPrincipal().toString();
+  const isOwner =
+    identity &&
+    channel &&
+    channel.principal.toString() === identity.getPrincipal().toString();
 
   if (isLoading) {
     return (
@@ -31,7 +34,9 @@ export default function CoursePlayerPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Course Not Found</h1>
-          <p className="text-muted-foreground">This course doesn't exist or you don't have access to it.</p>
+          <p className="text-muted-foreground">
+            This course doesn't exist or you don't have access to it.
+          </p>
         </div>
       </div>
     );

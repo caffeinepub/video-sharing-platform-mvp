@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useGetChannelVideos, useGetChannelMembershipTiers, useCreateCourse } from '../hooks/useQueries';
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -7,17 +7,27 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { Course } from '../backend';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { Course } from "../backend";
+import {
+  useCreateCourse,
+  useGetChannelMembershipTiers,
+  useGetChannelVideos,
+} from "../hooks/useQueries";
 
 interface CreateCourseDialogProps {
   channelId: string;
@@ -25,32 +35,36 @@ interface CreateCourseDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function CreateCourseDialog({ channelId, open, onOpenChange }: CreateCourseDialogProps) {
+export default function CreateCourseDialog({
+  channelId,
+  open,
+  onOpenChange,
+}: CreateCourseDialogProps) {
   const { data: videos = [] } = useGetChannelVideos(channelId);
   const { data: tiers = [] } = useGetChannelMembershipTiers(channelId);
   const createCourse = useCreateCourse();
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    priceUsd: '',
-    requiredTierLevel: 'none',
+    title: "",
+    description: "",
+    priceUsd: "",
+    requiredTierLevel: "none",
     selectedVideoIds: [] as string[],
   });
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
-      toast.error('Please enter a course title');
+      toast.error("Please enter a course title");
       return;
     }
 
     if (!formData.description.trim()) {
-      toast.error('Please enter a course description');
+      toast.error("Please enter a course description");
       return;
     }
 
     if (formData.selectedVideoIds.length === 0) {
-      toast.error('Please select at least one video');
+      toast.error("Please select at least one video");
       return;
     }
 
@@ -60,25 +74,33 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
         channelId,
         title: formData.title.trim(),
         description: formData.description.trim(),
-        priceUsd: formData.priceUsd ? BigInt(Math.round(parseFloat(formData.priceUsd) * 100)) / BigInt(100) : undefined,
-        requiredTierLevel: formData.requiredTierLevel !== 'none' ? BigInt(formData.requiredTierLevel) : undefined,
+        priceUsd: formData.priceUsd
+          ? BigInt(Math.round(Number.parseFloat(formData.priceUsd) * 100)) /
+            BigInt(100)
+          : undefined,
+        requiredTierLevel:
+          formData.requiredTierLevel !== "none"
+            ? BigInt(formData.requiredTierLevel)
+            : undefined,
         videoIds: formData.selectedVideoIds,
         courseImage: undefined,
         isVisible: true,
       };
 
       await createCourse.mutateAsync(course);
-      toast.success('Course created successfully');
+      toast.success("Course created successfully");
       onOpenChange(false);
       setFormData({
-        title: '',
-        description: '',
-        priceUsd: '',
-        requiredTierLevel: 'none',
+        title: "",
+        description: "",
+        priceUsd: "",
+        requiredTierLevel: "none",
         selectedVideoIds: [],
       });
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create course');
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create course",
+      );
     }
   };
 
@@ -97,7 +119,8 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
         <DialogHeader>
           <DialogTitle>Create Course</DialogTitle>
           <DialogDescription>
-            Create a structured learning path by organizing your videos into a course
+            Create a structured learning path by organizing your videos into a
+            course
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -107,7 +130,9 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
               id="title"
               placeholder="e.g., Complete Web Development Bootcamp"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
             />
           </div>
           <div className="grid gap-2">
@@ -116,7 +141,9 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
               id="description"
               placeholder="Describe what students will learn in this course..."
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={3}
             />
           </div>
@@ -130,15 +157,21 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
                 min="0"
                 placeholder="29.99"
                 value={formData.priceUsd}
-                onChange={(e) => setFormData({ ...formData, priceUsd: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, priceUsd: e.target.value })
+                }
               />
-              <p className="text-xs text-muted-foreground">Leave empty for free course</p>
+              <p className="text-xs text-muted-foreground">
+                Leave empty for free course
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="tier">Required Tier (optional)</Label>
               <Select
                 value={formData.requiredTierLevel}
-                onValueChange={(value) => setFormData({ ...formData, requiredTierLevel: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, requiredTierLevel: value })
+                }
               >
                 <SelectTrigger id="tier">
                   <SelectValue placeholder="No tier required" />
@@ -146,7 +179,10 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
                 <SelectContent>
                   <SelectItem value="none">No tier required</SelectItem>
                   {tiers.map((tier) => (
-                    <SelectItem key={tier.id} value={Number(tier.tierLevel).toString()}>
+                    <SelectItem
+                      key={tier.id}
+                      value={Number(tier.tierLevel).toString()}
+                    >
                       {tier.name} (Level {Number(tier.tierLevel)})
                     </SelectItem>
                   ))}
@@ -191,7 +227,9 @@ export default function CreateCourseDialog({ channelId, open, onOpenChange }: Cr
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={createCourse.isPending}>
-            {createCourse.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {createCourse.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
             Create Course
           </Button>
         </DialogFooter>

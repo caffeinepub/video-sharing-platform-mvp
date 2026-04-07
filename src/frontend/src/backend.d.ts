@@ -13,17 +13,6 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
-export interface Course {
-    id: string;
-    title: string;
-    channelId: ChannelId;
-    requiredTierLevel?: bigint;
-    description: string;
-    courseImage?: string;
-    isVisible: boolean;
-    priceUsd?: bigint;
-    videoIds: Array<VideoId>;
-}
 export interface Subscription {
     id: string;
     status: SubscriptionStatus;
@@ -40,6 +29,17 @@ export interface Donation {
     timestamp: Time;
     amountUsd: bigint;
     donor: Principal;
+}
+export interface Course {
+    id: string;
+    title: string;
+    channelId: ChannelId;
+    requiredTierLevel?: bigint;
+    description: string;
+    courseImage?: string;
+    isVisible: boolean;
+    priceUsd?: bigint;
+    videoIds: Array<VideoId>;
 }
 export interface StripeAccount {
     id: string;
@@ -66,6 +66,10 @@ export type StripeSessionStatus = {
         error: string;
     };
 };
+export interface StripeConfiguration {
+    allowedCountries: Array<string>;
+    secretKey: string;
+}
 export interface MembershipTier {
     id: string;
     tierLevel: bigint;
@@ -73,10 +77,6 @@ export interface MembershipTier {
     name: string;
     description: string;
     priceUsd: bigint;
-}
-export interface StripeConfiguration {
-    allowedCountries: Array<string>;
-    secretKey: string;
 }
 export interface Comment {
     id: string;

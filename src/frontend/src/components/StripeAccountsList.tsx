@@ -1,8 +1,3 @@
-import { useState } from 'react';
-import { useGetUserStripeAccounts, useDeleteStripeAccount } from '../hooks/useQueries';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,10 +7,31 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { CreditCard, Plus, Edit, Trash2, CheckCircle2, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import EditStripeAccountDialog from './EditStripeAccountDialog';
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  CheckCircle2,
+  CreditCard,
+  Edit,
+  Plus,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  useDeleteStripeAccount,
+  useGetUserStripeAccounts,
+} from "../hooks/useQueries";
+import EditStripeAccountDialog from "./EditStripeAccountDialog";
 
 export default function StripeAccountsList() {
   const { data: accounts = [], isLoading } = useGetUserStripeAccounts();
@@ -23,19 +39,27 @@ export default function StripeAccountsList() {
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
-  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(
+    null,
+  );
 
   const handleDelete = async (accountId: string) => {
     try {
       await deleteAccount.mutateAsync(accountId);
-      toast.success('Stripe account deleted');
+      toast.success("Stripe account deleted");
       setDeletingAccountId(null);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete Stripe account');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete Stripe account";
+      toast.error(message);
     }
   };
 
-  const editingAccount = editingAccountId ? accounts.find(acc => acc.id === editingAccountId) : undefined;
+  const editingAccount = editingAccountId
+    ? accounts.find((acc) => acc.id === editingAccountId)
+    : undefined;
 
   return (
     <>
@@ -48,7 +72,8 @@ export default function StripeAccountsList() {
                 Stripe Settings
               </CardTitle>
               <CardDescription>
-                Manage your Stripe accounts for payment processing across your channels
+                Manage your Stripe accounts for payment processing across your
+                channels
               </CardDescription>
             </div>
             <Button onClick={() => setShowCreateDialog(true)} size="sm">
@@ -67,9 +92,13 @@ export default function StripeAccountsList() {
           ) : accounts.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground mb-4">
-                No Stripe accounts configured yet. Add one to start accepting payments.
+                No Stripe accounts configured yet. Add one to start accepting
+                payments.
               </p>
-              <Button onClick={() => setShowCreateDialog(true)} variant="outline">
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                variant="outline"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Your First Stripe Account
               </Button>
@@ -77,17 +106,26 @@ export default function StripeAccountsList() {
           ) : (
             <div className="space-y-4">
               {accounts.map((account) => (
-                <div key={account.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div
+                  key={account.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold">{account.accountName}</h3>
                       {account.connectId ? (
-                        <Badge variant="default" className="flex items-center gap-1">
+                        <Badge
+                          variant="default"
+                          className="flex items-center gap-1"
+                        >
                           <CheckCircle2 className="h-3 w-3" />
                           Connected
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
                           <XCircle className="h-3 w-3" />
                           Not Connected
                         </Badge>
@@ -139,22 +177,28 @@ export default function StripeAccountsList() {
         />
       )}
 
-      <AlertDialog open={!!deletingAccountId} onOpenChange={(open) => !open && setDeletingAccountId(null)}>
+      <AlertDialog
+        open={!!deletingAccountId}
+        onOpenChange={(open) => !open && setDeletingAccountId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Stripe Account</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this Stripe account? This action cannot be undone.
-              Make sure no channels are using this account before deleting.
+              Are you sure you want to delete this Stripe account? This action
+              cannot be undone. Make sure no channels are using this account
+              before deleting.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingAccountId && handleDelete(deletingAccountId)}
+              onClick={() =>
+                deletingAccountId && handleDelete(deletingAccountId)
+              }
               disabled={deleteAccount.isPending}
             >
-              {deleteAccount.isPending ? 'Deleting...' : 'Delete'}
+              {deleteAccount.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

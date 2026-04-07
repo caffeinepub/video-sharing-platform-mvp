@@ -1,26 +1,29 @@
-import { useEffect, type ReactNode } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useAuth } from '../contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { useNavigate } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
+import { type ReactNode, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   redirectTo?: string;
 }
 
-export default function ProtectedRoute({ children, redirectTo = '/' }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  redirectTo = "/",
+}: ProtectedRouteProps) {
   const { isAuthenticated, authStatus } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Only redirect when auth status is confirmed (not initializing)
-    if (authStatus === 'unauthenticated') {
+    if (authStatus === "unauthenticated") {
       navigate({ to: redirectTo });
     }
   }, [authStatus, navigate, redirectTo]);
 
   // Show loading while initializing
-  if (authStatus === 'initializing') {
+  if (authStatus === "initializing") {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
         <div className="text-center space-y-4">

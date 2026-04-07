@@ -1,15 +1,23 @@
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { CheckCircle2 } from "lucide-react";
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
-  const search = useSearch({ from: '/payment-success' }) as { type?: string; channelId?: string };
+  const search = useSearch({ from: "/payment-success" }) as {
+    type?: string;
+    channelId?: string;
+  };
 
-  const isSubscription = search.type === 'subscription';
-  const isDonation = search.type === 'donation';
+  const isSubscription = search.type === "subscription";
+  const isDonation = search.type === "donation";
   const channelId = search.channelId;
 
   return (
@@ -22,9 +30,11 @@ export default function PaymentSuccessPage() {
             </div>
             <CardTitle className="text-2xl">Payment Successful!</CardTitle>
             <CardDescription>
-              {isSubscription && 'Your subscription has been activated'}
-              {isDonation && 'Thank you for your support!'}
-              {!isSubscription && !isDonation && 'Your payment was processed successfully'}
+              {isSubscription && "Your subscription has been activated"}
+              {isDonation && "Thank you for your support!"}
+              {!isSubscription &&
+                !isDonation &&
+                "Your payment was processed successfully"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -35,7 +45,12 @@ export default function PaymentSuccessPage() {
                 </p>
                 {channelId && (
                   <Button
-                    onClick={() => navigate({ to: '/channel/$channelId', params: { channelId } })}
+                    onClick={() =>
+                      navigate({
+                        to: "/channel/$channelId",
+                        params: { channelId },
+                      })
+                    }
                     className="w-full"
                   >
                     Go to Channel
@@ -50,7 +65,12 @@ export default function PaymentSuccessPage() {
                 </p>
                 {channelId && (
                   <Button
-                    onClick={() => navigate({ to: '/channel/$channelId', params: { channelId } })}
+                    onClick={() =>
+                      navigate({
+                        to: "/channel/$channelId",
+                        params: { channelId },
+                      })
+                    }
                     className="w-full"
                   >
                     Back to Channel
@@ -60,7 +80,7 @@ export default function PaymentSuccessPage() {
             )}
             <Button
               variant="outline"
-              onClick={() => navigate({ to: '/' })}
+              onClick={() => navigate({ to: "/" })}
               className="w-full"
             >
               Go to Home

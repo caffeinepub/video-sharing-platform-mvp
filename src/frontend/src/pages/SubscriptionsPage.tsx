@@ -1,7 +1,12 @@
-import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CreditCard } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { CreditCard } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function SubscriptionsPage() {
   const { isAuthenticated } = useAuth();
@@ -11,7 +16,9 @@ export default function SubscriptionsPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">My Subscriptions</h1>
-          <p className="text-muted-foreground">Please login to view your subscriptions</p>
+          <p className="text-muted-foreground">
+            Please login to view your subscriptions
+          </p>
         </div>
       </div>
     );
@@ -34,7 +41,8 @@ export default function SubscriptionsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-8">
-            No active subscriptions yet. Subscribe to channels to support creators and unlock exclusive content!
+            No active subscriptions yet. Subscribe to channels to support
+            creators and unlock exclusive content!
           </p>
         </CardContent>
       </Card>

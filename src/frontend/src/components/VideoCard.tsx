@@ -1,10 +1,10 @@
-import { Link } from '@tanstack/react-router';
-import { formatDistanceToNow } from 'date-fns';
-import { Lock } from 'lucide-react';
-import type { VideoMetadata } from '../backend';
-import { useGetChannel } from '../hooks/useQueries';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "@tanstack/react-router";
+import { formatDistanceToNow } from "date-fns";
+import { Lock } from "lucide-react";
+import type { VideoMetadata } from "../backend";
+import { useGetChannel } from "../hooks/useQueries";
 
 interface VideoCardProps {
   video: VideoMetadata;
@@ -20,7 +20,8 @@ export default function VideoCard({ video }: VideoCardProps) {
     return num.toString();
   };
 
-  const hasTierRequirement = video.requiredTierLevel !== undefined && video.requiredTierLevel !== null;
+  const hasTierRequirement =
+    video.requiredTierLevel !== undefined && video.requiredTierLevel !== null;
 
   return (
     <div className="group cursor-pointer">
@@ -59,10 +60,13 @@ export default function VideoCard({ video }: VideoCardProps) {
         </div>
       </Link>
       <div className="mt-3 flex gap-3">
-        <Link to="/channel/$channelId" params={{ channelId: video.channelId.toString() }}>
+        <Link
+          to="/channel/$channelId"
+          params={{ channelId: video.channelId.toString() }}
+        >
           <Avatar className="h-9 w-9">
             <AvatarImage src="/assets/generated/default-avatar.dim_100x100.png" />
-            <AvatarFallback>{channel?.name?.[0] || 'U'}</AvatarFallback>
+            <AvatarFallback>{channel?.name?.[0] || "U"}</AvatarFallback>
           </Avatar>
         </Link>
         <div className="flex-1 min-w-0">
@@ -77,13 +81,18 @@ export default function VideoCard({ video }: VideoCardProps) {
             className="mt-1 block"
           >
             <p className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {channel?.name || 'Loading...'}
+              {channel?.name || "Loading..."}
             </p>
           </Link>
           <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             <span>{formatViews(video.likeCount)} likes</span>
             <span>•</span>
-            <span>{formatDistanceToNow(new Date(Number(video.uploadDate) / 1000000), { addSuffix: true })}</span>
+            <span>
+              {formatDistanceToNow(
+                new Date(Number(video.uploadDate) / 1000000),
+                { addSuffix: true },
+              )}
+            </span>
           </div>
         </div>
       </div>

@@ -1,17 +1,30 @@
-import { useParams } from '@tanstack/react-router';
-import { useGetChannel, useGetChannelMembershipTiers, useGetChannelDonations } from '../hooks/useQueries';
-import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, DollarSign, Users, TrendingUp } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useParams } from "@tanstack/react-router";
+import { BarChart3, DollarSign, TrendingUp, Users } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useGetChannel,
+  useGetChannelDonations,
+  useGetChannelMembershipTiers,
+} from "../hooks/useQueries";
 
 export default function ChannelAnalyticsPage() {
-  const { channelId } = useParams({ from: '/channel/$channelId/analytics' });
+  const { channelId } = useParams({ from: "/channel/$channelId/analytics" });
   const { identity } = useAuth();
   const { data: channel, isLoading: channelLoading } = useGetChannel(channelId);
   const { data: tiers = [] } = useGetChannelMembershipTiers(channelId);
   const { data: donations = [] } = useGetChannelDonations(channelId);
 
-  const isOwner = identity && channel && channel.principal.toString() === identity.getPrincipal().toString();
+  const isOwner =
+    identity &&
+    channel &&
+    channel.principal.toString() === identity.getPrincipal().toString();
 
   if (channelLoading) {
     return (
@@ -33,13 +46,18 @@ export default function ChannelAnalyticsPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have permission to access this page.</p>
+          <p className="text-muted-foreground">
+            You don't have permission to access this page.
+          </p>
         </div>
       </div>
     );
   }
 
-  const totalDonations = donations.reduce((sum, donation) => sum + Number(donation.amountUsd), 0);
+  const totalDonations = donations.reduce(
+    (sum, donation) => sum + Number(donation.amountUsd),
+    0,
+  );
   const donationCount = donations.length;
 
   // Calculate subscription metrics (placeholder - would need actual subscription data)
@@ -59,7 +77,9 @@ export default function ChannelAnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Subscribers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Subscribers
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -70,29 +90,41 @@ export default function ChannelAnalyticsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Monthly Revenue
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${monthlyRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ${monthlyRevenue.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">From subscriptions</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Donations
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalDonations.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{donationCount} donations</p>
+            <div className="text-2xl font-bold">
+              ${totalDonations.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {donationCount} donations
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Membership Tiers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Membership Tiers
+            </CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -116,14 +148,21 @@ export default function ChannelAnalyticsPage() {
             ) : (
               <div className="space-y-4">
                 {tiers.map((tier) => (
-                  <div key={tier.id} className="flex items-center justify-between">
+                  <div
+                    key={tier.id}
+                    className="flex items-center justify-between"
+                  >
                     <div>
                       <p className="font-medium">{tier.name}</p>
-                      <p className="text-sm text-muted-foreground">${Number(tier.priceUsd)}/month</p>
+                      <p className="text-sm text-muted-foreground">
+                        ${Number(tier.priceUsd)}/month
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold">0</p>
-                      <p className="text-xs text-muted-foreground">subscribers</p>
+                      <p className="text-xs text-muted-foreground">
+                        subscribers
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -145,16 +184,25 @@ export default function ChannelAnalyticsPage() {
             ) : (
               <div className="space-y-4">
                 {donations.slice(0, 5).map((donation) => (
-                  <div key={donation.id} className="flex items-center justify-between">
+                  <div
+                    key={donation.id}
+                    className="flex items-center justify-between"
+                  >
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(Number(donation.timestamp) / 1000000).toLocaleDateString()}
+                        {new Date(
+                          Number(donation.timestamp) / 1000000,
+                        ).toLocaleDateString()}
                       </p>
                       {donation.message && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{donation.message}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {donation.message}
+                        </p>
                       )}
                     </div>
-                    <p className="font-bold text-accent">${Number(donation.amountUsd)}</p>
+                    <p className="font-bold text-accent">
+                      ${Number(donation.amountUsd)}
+                    </p>
                   </div>
                 ))}
               </div>

@@ -1,12 +1,12 @@
-import { useSearch } from '@tanstack/react-router';
-import { useSearchVideos } from '../hooks/useQueries';
-import VideoCard from '../components/VideoCard';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Search } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSearch } from "@tanstack/react-router";
+import { Search } from "lucide-react";
+import VideoCard from "../components/VideoCard";
+import { useSearchVideos } from "../hooks/useQueries";
 
 export default function SearchPage() {
-  const searchParams = useSearch({ from: '/search' });
-  const query = (searchParams as any).q || '';
+  const searchParams = useSearch({ from: "/search" });
+  const query = (searchParams as any).q || "";
   const { data: videos, isLoading } = useSearchVideos(query);
 
   return (
@@ -22,8 +22,8 @@ export default function SearchPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="space-y-3">
+          {["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"].map((id) => (
+            <div key={id} className="space-y-3">
               <Skeleton className="aspect-video w-full rounded-xl" />
               <div className="flex gap-3">
                 <Skeleton className="h-9 w-9 rounded-full" />

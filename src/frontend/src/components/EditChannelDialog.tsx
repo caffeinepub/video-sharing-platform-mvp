@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useUpdateChannel } from '../hooks/useQueries';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,14 +6,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { Channel } from '../backend';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { Channel } from "../backend";
+import { useUpdateChannel } from "../hooks/useQueries";
 
 interface EditChannelDialogProps {
   open: boolean;
@@ -22,7 +22,11 @@ interface EditChannelDialogProps {
   channel: Channel;
 }
 
-export default function EditChannelDialog({ open, onOpenChange, channel }: EditChannelDialogProps) {
+export default function EditChannelDialog({
+  open,
+  onOpenChange,
+  channel,
+}: EditChannelDialogProps) {
   const updateChannel = useUpdateChannel();
   const [name, setName] = useState(channel.name);
   const [profile, setProfile] = useState(channel.profile);
@@ -37,7 +41,7 @@ export default function EditChannelDialog({ open, onOpenChange, channel }: EditC
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error('Please enter a channel name');
+      toast.error("Please enter a channel name");
       return;
     }
 
@@ -45,14 +49,15 @@ export default function EditChannelDialog({ open, onOpenChange, channel }: EditC
       await updateChannel.mutateAsync({
         channelId: channel.id,
         name: name.trim(),
-        profile: profile.trim() || 'Video creator',
+        profile: profile.trim() || "Video creator",
       });
 
-      toast.success('Channel updated successfully!');
+      toast.success("Channel updated successfully!");
       onOpenChange(false);
-    } catch (error: any) {
-      console.error('Error updating channel:', error);
-      toast.error(error.message || 'Failed to update channel');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update channel";
+      toast.error(message);
     }
   };
 
@@ -101,7 +106,9 @@ export default function EditChannelDialog({ open, onOpenChange, channel }: EditC
               Cancel
             </Button>
             <Button type="submit" disabled={updateChannel.isPending}>
-              {updateChannel.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {updateChannel.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Save Changes
             </Button>
           </DialogFooter>

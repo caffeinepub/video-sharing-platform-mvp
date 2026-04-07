@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { useCreateChannel } from '../hooks/useQueries';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,55 +6,61 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useCreateChannel } from "../hooks/useQueries";
 
 interface CreateChannelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function CreateChannelDialog({ open, onOpenChange }: CreateChannelDialogProps) {
+export default function CreateChannelDialog({
+  open,
+  onOpenChange,
+}: CreateChannelDialogProps) {
   const { identity } = useInternetIdentity();
   const createChannel = useCreateChannel();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!identity) {
-      toast.error('Please login to create a channel');
+      toast.error("Please login to create a channel");
       return;
     }
 
     if (!name.trim()) {
-      toast.error('Please enter a channel name');
+      toast.error("Please enter a channel name");
       return;
     }
 
     try {
       const channelId = `channel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       await createChannel.mutateAsync({
         id: channelId,
         principal: identity.getPrincipal(),
         name: name.trim(),
-        profile: description.trim() || 'Video creator',
+        profile: description.trim() || "Video creator",
       });
 
-      toast.success('Channel created successfully!');
-      setName('');
-      setDescription('');
+      toast.success("Channel created successfully!");
+      setName("");
+      setDescription("");
       onOpenChange(false);
-    } catch (error: any) {
-      console.error('Error creating channel:', error);
-      toast.error(error.message || 'Failed to create channel');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create channel";
+      toast.error(message);
     }
   };
 
@@ -105,7 +109,9 @@ export default function CreateChannelDialog({ open, onOpenChange }: CreateChanne
               Cancel
             </Button>
             <Button type="submit" disabled={createChannel.isPending}>
-              {createChannel.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {createChannel.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Create Channel
             </Button>
           </DialogFooter>
